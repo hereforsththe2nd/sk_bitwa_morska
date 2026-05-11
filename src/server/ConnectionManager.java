@@ -9,26 +9,30 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 
+import communication.ClientToServer;
+import communication.Command;
+
 interface ConnectionListener{
 	//listener do sluchania nowych polaczen z uzytkownikami
 	void onConnection(Socket socket, User user);
+	void onDisconnect(Socket socket, User user);
 }
 
 interface ClientToServerMessageListener{
-	void onMessage(ClientToServerCommand command, User user);
+	void onMessage(Command command, User user);
 }
 
-public class Server {
-	Server server = this;
+public class ConnectionManager {
+	ConnectionManager server = this;
 	ServerSocket serverSocket;
 	Thread newConnections;
 	LinkedList<User> users = new LinkedList<User>();
 	boolean running = true;
-	ConnectionListener listener;
-	ClientToServerMessageListener messageListener;
-	public Server(int port, ConnectionListener listener, ClientToServerMessageListener messageListener) throws IOException {
-		this.listener = listener;
-		this.messageListener = messageListener;
+	ConnectionListener connectionListener;
+	
+	LinkedList<ClientToServerMessageListener> mesListeners = new LinkedList<ClientToServerMessageListener>();
+	public ConnectionManager(int port, ConnectionListener listener) throws IOException {
+		this.connectionListener = listener;
 		serverSocket = new ServerSocket(port);
 		newConnections = new Thread(new Runnable() {
 			@Override
@@ -52,7 +56,7 @@ public class Server {
 		User user = new User();
 		users.add(user);
 		user.userName = nextDefaultUsername(users);
-		listener.onConnection(socket, users.getLast());
+		connectionListener.onConnection(socket, users.getLast());
 		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		//BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 		Thread recieveMessages = new Thread(new Runnable() {
@@ -61,17 +65,26 @@ public class Server {
 			public void run() {
 				while(running && user.connected) {
 					try {
+						System.out.println("Listening for messages from user " + user.print());
 						String line = bufferedReader.readLine();
-						ClientToServerCommand com = new ClientToServerCommand(line);
-						messageListener.onMessage(com, user);
+						System.out.println(user.print() + " " + line);
+						if(line==null) {
+							user.connected=false;
+							continue;
+						}
+						Command com = Command.decode(line, ClientToServer.values());
+						for(ClientToServerMessageListener messageListener : mesListeners)	messageListener.onMessage(com, user);
 					} catch (IOException e) {
-						System.err.println("User disconnected " + user.userName);
+						System.err.println("User disconnected " + user.ID);
 						user.connected = false;
 						
 					}
 				}
 				try {
 					bufferedReader.close();
+					users.remove(user);
+					System.out.println("Succesfully closed connection to user " + user.userName);
+					connectionListener.onDisconnect(socket, user);
 				} catch (IOException e) {
 					System.err.println("Unable to close bufferedReader of user "+user.userName);
 					e.printStackTrace();
@@ -84,10 +97,15 @@ public class Server {
 		running=false;
 		try {
 			serverSocket.close();
+			System.out.println("Server succesfully closed.");
 		} catch (IOException e) {
 			System.err.println("Did not manage to close ServerSocket "+serverSocket);
 			e.printStackTrace();
 		}
+	}
+	
+	protected void addMessageListener(ClientToServerMessageListener listener) {
+		mesListeners.add(listener);
 	}
 	
 	static private String nextDefaultUsername(LinkedList<User> users) {
@@ -134,7 +152,7 @@ public class Server {
 		}
 		for(int i=0;i<5;i++) {
 			users.add(new User());
-			users.getLast().userName = Server.nextDefaultUsername(users);
+			users.getLast().userName = ConnectionManager.nextDefaultUsername(users);
 		}
 		for(User user : users) {
 			System.out.println(user.userName);
