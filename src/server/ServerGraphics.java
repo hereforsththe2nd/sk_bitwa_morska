@@ -14,8 +14,11 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
+import communication.ChatList;
 import communication.ClientToServer;
 import communication.Command;
+import communication.ServerToClient;
+import communication.User;
 
 public class ServerGraphics extends JFrame{
 
@@ -95,7 +98,7 @@ public class ServerGraphics extends JFrame{
 		namesPanel = new JPanel();
 		namesScrollPane = new JScrollPane(namesPanel);
 		namesScrollPane.setPreferredSize(new Dimension(100,100));
-		namesPanel.add(new JTextField("ass"));
+		namesPanel.add(new JTextField("oefo"));
 		add(namesScrollPane);
 		
 		JTextArea chatText = new JTextArea("CHAT\n");
@@ -105,9 +108,14 @@ public class ServerGraphics extends JFrame{
 			
 			@Override
 			public void onMessage(Command command, User user) {
-				if(command.type==ClientToServer.CHAT) {
-					chatText.append(command.message+"\n");
+				if(command.context.equals(ClientToServer.CHAT.getLabel())) {
+					chatText.append(command.body+"\n");
 					chatText.revalidate();
+					try {
+						server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.CHAT, Command.encode(user.userName, command.body))));
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
 		});
@@ -119,12 +127,12 @@ public class ServerGraphics extends JFrame{
 		serverSendText.setEditable(false);
 		JTextArea serverRecieveText = new JTextArea("rec");
 		serverRecieveText.setEditable(false);
-		serverSendText.setPreferredSize(new Dimension(250,100));
+		serverSendText.setMinimumSize(new Dimension(250,100));
 		serverRecieveText.setPreferredSize(new Dimension(250,100));
 		JScrollPane serverSendScrollPane = new JScrollPane(serverSendText);
 		JScrollPane serverRecieveScrollPane = new JScrollPane(serverRecieveText);
-		serverRecieveScrollPane.setSize(new Dimension(200,100));
-		serverSendScrollPane.setSize(new Dimension(200,100));
+		serverRecieveScrollPane.setMinimumSize(new Dimension(200,100));
+		serverSendScrollPane.setPreferredSize(new Dimension(200,100));
 		activity.add(serverRecieveScrollPane);
 		activity.add(serverSendScrollPane);
 		add(activity);

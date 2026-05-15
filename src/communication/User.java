@@ -1,15 +1,18 @@
-package server;
+package communication;
 
+import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Random;
 
 public class User {
 	static LinkedList<Integer> IDs = new LinkedList<Integer>();
 	Random rand = new Random();
-	final int ID;
-	String userName;
-	boolean connected;
-	public User() {
+	public final int ID;
+	public String userName;
+	public final Socket socket;
+	public boolean connected;
+	public User(Socket socket) {
+		this.socket = socket;
 		int random = rand.nextInt();
 		while((IDs.contains(random))) {
 			random = rand.nextInt();

@@ -11,6 +11,7 @@ import java.util.LinkedList;
 
 import communication.ClientToServer;
 import communication.Command;
+import communication.User;
 
 interface ConnectionListener{
 	//listener do sluchania nowych polaczen z uzytkownikami
@@ -53,7 +54,7 @@ public class ConnectionManager {
 		newConnections.start();
 	}
 	private void addSocket(Socket socket) throws IOException {
-		User user = new User();
+		User user = new User(socket);
 		users.add(user);
 		user.userName = nextDefaultUsername(users);
 		connectionListener.onConnection(socket, users.getLast());
@@ -72,7 +73,7 @@ public class ConnectionManager {
 							user.connected=false;
 							continue;
 						}
-						Command com = Command.decode(line, ClientToServer.values());
+						Command com = Command.decode(line);
 						for(ClientToServerMessageListener messageListener : mesListeners)	messageListener.onMessage(com, user);
 					} catch (IOException e) {
 						System.err.println("User disconnected " + user.ID);
@@ -93,6 +94,18 @@ public class ConnectionManager {
 		}); 
 		recieveMessages.start();
 	}
+	
+	protected void send(Command com, User user) throws IOException {
+		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(user.socket.getOutputStream()));
+		writer.write(Command.encode(com));
+		writer.write("\n");
+		writer.flush();
+	}
+	
+	protected void sendAll(Command com) throws IOException {
+		for(User user : users) send(com, user);
+	}
+	
 	protected void close() {
 		running=false;
 		try {
@@ -126,36 +139,5 @@ public class ConnectionManager {
 		i++;
 		ret = defaultName + i;
 		return ret;
-	}
-	
-	public static void main(String[] args) {
-		LinkedList<User> users = new LinkedList<User>();
-		for(int i=0;i<10;i++) {
-			users.add(new User());
-			users.getLast().userName = switch(i) {
-				case 0 -> {
-					yield "default";
-				}
-				case 1 -> {
-					yield "default1";
-				}
-				case 2 -> {
-					yield "default3";
-				}
-				default -> {
-					yield "bruh";
-				}
-			};
-		}
-		for(User user : users) {
-			System.out.println(user.userName + " <--");
-		}
-		for(int i=0;i<5;i++) {
-			users.add(new User());
-			users.getLast().userName = ConnectionManager.nextDefaultUsername(users);
-		}
-		for(User user : users) {
-			System.out.println(user.userName);
-		}
 	}
 }

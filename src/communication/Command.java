@@ -1,57 +1,49 @@
 package communication;
 
 public class Command {
-	static final CommandType PARSING_ERR = new CommandType() {
-		@Override
-		public String getLabel() {
-			return "ERROR_PARSING_MESSAGE";
-		}
-	};
-	public final String message;
-	public final CommandType type;
+	public final String body;
+	public final String context;
 	private static final char separator = '|';
-	protected Command(String str, CommandType[] list) {
+			
+	protected Command(String str) {
 		//dekoduje str
-
-		String command;
-		String message;
 		int i = str.indexOf(separator);
 		switch (i) {
 		case -1:
-			command = str;
-			message=null;
+			context = str;
+			body=null;
 			break;
 
 		default:
-			command = str.substring(0, i);
-			message = str.substring(i+1);
+			context = str.substring(0, i);
+			body = str.substring(i+1);
 			break;
 		}
-		for(CommandType com : list) {
-			if(command.equals(com.getLabel())) {
-				this.type = com;
-				this.message = message;
-				return;
-			}
-		}
-		this.type= PARSING_ERR;
-		this.message=str;
-	}
-	Command(CommandType type, String message){
-		this.type=type;
-		this.message=message;
 	}
 	
-	public static Command decode(String str, CommandType[] list) {
-		return new Command(str, list);
+	public Command(CommandType type, String body){
+		this.context=type.getLabel();
+		this.body=body;
 	}
 	
-	public static String encode(CommandType type, String message) {
-		return encode(new Command(type, message));
+	public Command(String context, String body) {
+		this.body = body;
+		this.context = context;
+	}
+	
+	public static Command decode(String str) {
+		return new Command(str);
+	}
+		
+	public static String encode(String context, String message) {
+		return encode(new Command(context, message));
 	}
 	
 	public static String encode(Command com) {
-		return com.type.getLabel()+"|"+com.message;
+		return com.context+"|"+com.body;
 	}
 	
+	public static String encode(CommandType type, String body) {
+		return Command.encode(new Command(type.getLabel(), body));
+	}
 }
