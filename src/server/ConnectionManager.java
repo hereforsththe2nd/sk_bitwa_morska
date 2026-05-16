@@ -25,9 +25,9 @@ interface ClientToServerMessageListener{
 
 public class ConnectionManager {
 	ConnectionManager server = this;
-	ServerSocket serverSocket;
+	ServerSocket serverSocket; 
 	Thread newConnections;
-	LinkedList<User> users = new LinkedList<User>();
+	private LinkedList<User> users = new LinkedList<User>();
 	boolean running = true;
 	ConnectionListener connectionListener;
 	
@@ -55,7 +55,7 @@ public class ConnectionManager {
 	}
 	private void addSocket(Socket socket) throws IOException {
 		User user = new User(socket);
-		users.add(user);
+		addUser(user);
 		user.userName = nextDefaultUsername(users);
 		connectionListener.onConnection(socket, users.getLast());
 		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -83,7 +83,7 @@ public class ConnectionManager {
 				}
 				try {
 					bufferedReader.close();
-					users.remove(user);
+					removeUser(user);
 					System.out.println("Succesfully closed connection to user " + user.userName);
 					connectionListener.onDisconnect(socket, user);
 				} catch (IOException e) {
@@ -139,5 +139,21 @@ public class ConnectionManager {
 		i++;
 		ret = defaultName + i;
 		return ret;
+	}
+	
+	public LinkedList<User> getUsers() {
+		return users;
+	}
+	
+	private void removeUser(User user) {
+		synchronized(ServerGraphics.lock) {
+			users.remove(user);
+		}
+	}
+	
+	private void addUser(User user) {
+		synchronized (ServerGraphics.lock) {
+			users.add(user);
+		}
 	}
 }

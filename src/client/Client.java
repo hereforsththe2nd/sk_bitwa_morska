@@ -5,41 +5,26 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.event.ActionListener;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
-import java.awt.event.ComponentAdapter;
 import java.io.*;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.JTextPane;
-import javax.swing.JWindow;
 import javax.swing.SwingUtilities;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyledDocument;
-
-import communication.ChatList;
 import communication.ClientToServer;
 import communication.Command;
 import communication.CommandType;
 import communication.ServerToClient;
-import server.ConnectionManager;
 
 public class Client extends JFrame{
 	/**
@@ -53,11 +38,13 @@ public class Client extends JFrame{
 	final JFrame frame = this;
 	ConnectionClient conn;
 	private JTextArea errors;
+	Chat chat;
 	
 	public Client() throws UnknownHostException, IOException {		
 		
 		setSize(700,500);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		
 		
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
@@ -99,10 +86,10 @@ public class Client extends JFrame{
 		JButton button = new JButton("Connect");
 		leftToolbar.add(button);
 		
-		Chat chatPane = new Chat();
-		chatPane.setDisabledTextColor(Color.BLACK);
-		chatPane.setEnabled(false);
-		JScrollPane chatScroll = new  JScrollPane(chatPane);
+		chat = new Chat();
+		chat.setDisabledTextColor(Color.BLACK);
+		chat.setEnabled(false);
+		JScrollPane chatScroll = new  JScrollPane(chat);
 		left.add(chatScroll, BorderLayout.CENTER);
 		JTextField chatSend = new JTextField();
 		chatSend.addActionListener(new ActionListener() {
@@ -134,9 +121,20 @@ public class Client extends JFrame{
 
 						@Override
 						public void onMessage(Command com) {
-							if(com.context.equals(ServerToClient.CHAT.getLabel())) {
+							switch(CommandType.get(com.context, ServerToClient.values())) {
+							case ServerToClient.CHAT:
 								Command message = Command.decode(com.body);
-								chatPane.exec(message);
+								chat.exec(message);
+								break;
+							case ServerToClient.ERROR_PANE:
+								JOptionPane.showMessageDialog(frame, com.body, "", JOptionPane.ERROR_MESSAGE);
+								break;
+							default:
+								errors.setText("Otrzymano od serwera: "+com.context);
+								break;
+							
+							}
+							if(com.context.equals(ServerToClient.CHAT.getLabel())) {
 							}
 						}
 					});
@@ -154,7 +152,9 @@ public class Client extends JFrame{
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
 		JMenuItem setUsername = new JMenuItem("Ustaw nazwę użytkownika");
+		JMenuItem clearChat = new JMenuItem("Wyczyść czat");
 		menuBar.add(setUsername);
+		menuBar.add(clearChat);
 		setUsername.addActionListener(new ActionListener() {
 			
 			@Override
@@ -168,6 +168,13 @@ public class Client extends JFrame{
 						e1.printStackTrace();
 					}
 				}
+			}
+		});
+		clearChat.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				chat.clear();
 			}
 		});
 	}

@@ -36,6 +36,7 @@ public class Chat extends JTextPane {
 		StyleConstants.setBold(bold, true);
 		light = doc.addStyle("light", null);
 		StyleConstants.setForeground(light, Color.LIGHT_GRAY);
+		StyleConstants.setItalic(light, true);
 	}
 	
 	public void exec(Command com) {
@@ -46,9 +47,11 @@ public class Chat extends JTextPane {
 				break;
 			case ChatList.CHAT:
 				Command mess = Command.decode(com.body);
-				 System.out.println(mess.body+"\n"+mess.context+"\n");
 				doc.insertString(doc.getLength(), "\n"+mess.context+":", bold);
 				doc.insertString(doc.getLength(), mess.body, chat);
+				break;
+			case ChatList.SERVER:
+				doc.insertString(doc.getLength(), "\n"+com.body, light);
 				break;
 			default:
 				doc.insertString(doc.getLength(), "\n"+com.body, null);
@@ -56,6 +59,14 @@ public class Chat extends JTextPane {
 			
 			}
 		} catch(BadLocationException e) {
+		}
+	}
+
+	public void clear() {
+		try {
+			doc.remove(0, doc.getLength());
+		} catch (BadLocationException e) {
+			e.printStackTrace();
 		}
 	}
 }

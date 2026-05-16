@@ -27,4 +27,8 @@ public class User {
 	public String print() {
 		return "user ID: "+ID + " username: "+userName;
 	}
+	public void setUserName(String userName) {
+		this.userName = userName;
+		
+	}
 }

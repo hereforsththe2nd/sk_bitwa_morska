@@ -1,7 +1,8 @@
 package communication;
 
 public enum ServerToClient implements CommandType{
-	CHAT("CHAT");
+	CHAT("CHAT"),
+	ERROR_PANE("ERROR_PANE"),
 	;
 	private final String label;
 	private ServerToClient(String label) {

@@ -7,6 +7,7 @@ import java.awt.event.WindowListener;
 import java.io.IOException;
 import java.net.Socket;
 
+import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -17,6 +18,7 @@ import javax.swing.SwingUtilities;
 import communication.ChatList;
 import communication.ClientToServer;
 import communication.Command;
+import communication.CommandType;
 import communication.ServerToClient;
 import communication.User;
 
@@ -33,7 +35,7 @@ public class ServerGraphics extends JFrame{
 	
 	public ServerGraphics() throws IOException {
 		super();
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		addWindowListener(new WindowListener() {
 			
 			@Override
@@ -78,7 +80,8 @@ public class ServerGraphics extends JFrame{
 				
 			}
 		});
-		setSize(600,500);
+		setSize(800,600);
+		setLayout(new FlowLayout());
 		
 		server = new ConnectionManager(8000, new ConnectionListener() {			
 			@Override
@@ -92,33 +95,17 @@ public class ServerGraphics extends JFrame{
 				revalidateUsers();
 			}
 		});
-		
-		setLayout(new FlowLayout(FlowLayout.LEFT));
-		
+				
 		namesPanel = new JPanel();
+		namesPanel.setLayout(new BoxLayout(namesPanel, BoxLayout.Y_AXIS));
+		namesPanel.add(new JTextField("Connected users:"));
 		namesScrollPane = new JScrollPane(namesPanel);
 		namesScrollPane.setPreferredSize(new Dimension(100,100));
-		namesPanel.add(new JTextField("oefo"));
 		add(namesScrollPane);
 		
 		JTextArea chatText = new JTextArea("CHAT\n");
 		JScrollPane chatScroll = new JScrollPane(chatText);
 		chatScroll.setPreferredSize(new Dimension(200,100));
-		server.addMessageListener(new ClientToServerMessageListener() {
-			
-			@Override
-			public void onMessage(Command command, User user) {
-				if(command.context.equals(ClientToServer.CHAT.getLabel())) {
-					chatText.append(command.body+"\n");
-					chatText.revalidate();
-					try {
-						server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.CHAT, Command.encode(user.userName, command.body))));
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-		});
 		add(chatScroll);
 		
 		JPanel activity = new JPanel();
@@ -127,12 +114,10 @@ public class ServerGraphics extends JFrame{
 		serverSendText.setEditable(false);
 		JTextArea serverRecieveText = new JTextArea("rec");
 		serverRecieveText.setEditable(false);
-		serverSendText.setMinimumSize(new Dimension(250,100));
-		serverRecieveText.setPreferredSize(new Dimension(250,100));
 		JScrollPane serverSendScrollPane = new JScrollPane(serverSendText);
 		JScrollPane serverRecieveScrollPane = new JScrollPane(serverRecieveText);
-		serverRecieveScrollPane.setMinimumSize(new Dimension(200,100));
-		serverSendScrollPane.setPreferredSize(new Dimension(200,100));
+		serverRecieveScrollPane.setPreferredSize(new Dimension(300,150));
+		serverSendScrollPane.setPreferredSize(new Dimension(300,150));
 		activity.add(serverRecieveScrollPane);
 		activity.add(serverSendScrollPane);
 		add(activity);
@@ -141,37 +126,60 @@ public class ServerGraphics extends JFrame{
 			public void onMessage(Command command, User user) {
 				serverRecieveText.append("\n"+user.ID + "  " + user.userName + "  " + Command.encode(command));
 				serverRecieveText.revalidate();
-			}
-		});
-		
-	}
-	
-	private void revalidateUsers() {
-		namesPanel.removeAll();
-		for(User user : server.users) {
-			JTextArea userText = new JTextArea(user.userName);
-			userText.setEditable(false);
-			namesPanel.add(userText);
-		}
-		
-		revalidate();
-	}
-	
-	public static void main(String[] args) {
-		SwingUtilities.invokeLater(new Runnable() {
-			
-			@Override
-			public void run() {
-				ServerGraphics frame;
-				try {
-					frame = new ServerGraphics();
-					frame.setVisible(true);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				switch(CommandType.get(command.context, ClientToServer.values())) {
+				case ClientToServer.CHAT:
+					chatText.append(command.body+"\n");
+					chatText.revalidate();
+					try {
+						server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.CHAT, Command.encode(user.userName, command.body))));
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					break;
+				case ClientToServer.SET_USERNAME:
+				caseBlock:
+				{
+					try {
+						for(User us : server.getUsers()) {
+							if(us.userName.equals(command.body)) {
+								server.send(new Command(ServerToClient.ERROR_PANE, "Username "+command.body + " already in use."), user);
+								break caseBlock;
+							}
+						}
+						if(command.body.contains("|")) {
+							server.send(new Command(ServerToClient.ERROR_PANE, "Username cannot contain '|'."), user);
+							break caseBlock;
+							
+						}
+						if(command.body.equals("")) {
+							server.send(new Command(ServerToClient.ERROR_PANE, "Username cannot be empty."), user);
+							break caseBlock;
+						}
+						String oldUserName = user.userName;
+						user.setUserName(command.body);
+						revalidateUsers();
+						server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "User "+oldUserName+" changed their username to " + user.userName)));
+						break caseBlock;
+					} catch(IOException e) {e.printStackTrace();}
+				}
+				default:
 				}
 			}
 		});
-	}
 
+	}
+	
+	static public final Object lock = new Object();
+	private void revalidateUsers() {
+		namesPanel.removeAll();
+		namesPanel.add(new JTextField("Users:"));
+		synchronized(lock){
+			for(User user : server.getUsers()) {
+				JTextArea userText = new JTextArea(user.userName);
+				userText.setEditable(false);
+				namesPanel.add(userText);
+			}
+		}
+		revalidate();
+	}
 }
