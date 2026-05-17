@@ -12,15 +12,22 @@ import java.util.LinkedList;
 import communication.Command;
 import communication.ServerToClient;
 
-interface ConnectionListener{
-	void onMessage(Command com);
-}
 
 public class ConnectionClient {
+	static public interface ConnectionListener{
+		void onMessage(Command com);
+	}
+	
+	
+	static public interface AutoStopMessageListener extends ConnectionListener{
+		ServerToClient getContext();
+	}
+	
 	final Socket socket;
 	final BufferedWriter writer;
 	final BufferedReader reader;
 	final LinkedList<ConnectionListener> listeners = new LinkedList<ConnectionListener>();
+	final LinkedList<AutoStopMessageListener> autoStopListeners = new LinkedList<AutoStopMessageListener>();
 	boolean connected = true;
 
 	protected ConnectionClient(Socket socket) throws UnknownHostException, IOException {
@@ -40,7 +47,13 @@ public class ConnectionClient {
 								continue;
 							}
 							com = Command.decode(line);
-							for(ConnectionListener listener : listeners) listener.onMessage(com);
+							synchronized(Locks.ADD_LISTENER) {
+								for(ConnectionListener listener : listeners) listener.onMessage(com);
+								for(AutoStopMessageListener listener : (LinkedList<AutoStopMessageListener>)autoStopListeners.clone()) {
+									listener.onMessage(com);
+									if(com.context.equals(listener.getContext().getLabel())) autoStopListeners.remove(listener);
+								}
+							}
 						} catch (IOException e) {
 							connected = false;
 						}
@@ -65,13 +78,23 @@ public class ConnectionClient {
 		connected = false;
 	}
 	
-	protected void addConnectionListener(ConnectionListener listener) {
-		listeners.add(listener);
+	public void addMessageListener(ConnectionListener listener) {
+		synchronized(Locks.ADD_LISTENER) {
+			listeners.add(listener);
+		}
 	}
 	
- 	protected void send(Command com) throws IOException {
+ 	public void send(Command com) throws IOException {
 		writer.write(Command.encode(com));
 		writer.write("\n");
 		writer.flush();
 	}
+ 	
+ 	public void sendAndAwait(Command com, AutoStopMessageListener listener) throws IOException {
+ 		//ważna jest kolejność w której te rzeczy się robi!
+ 		synchronized (Locks.ADD_LISTENER) {
+			autoStopListeners.add(listener);
+		}
+ 		send(com);
+ 	}
 }

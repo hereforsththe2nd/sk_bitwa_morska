@@ -3,6 +3,7 @@ package client;
 import java.awt.event.ActionEvent;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.event.ActionListener;
 import java.io.*;
@@ -10,7 +11,9 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 
 import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
@@ -20,11 +23,16 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.JWindow;
 import javax.swing.SwingUtilities;
+
+import client.ConnectionClient.AutoStopMessageListener;
+import client.ConnectionClient.ConnectionListener;
 import communication.ClientToServer;
 import communication.Command;
 import communication.CommandType;
 import communication.ServerToClient;
+import game.GameClient;
 
 public class Client extends JFrame{
 	/**
@@ -33,12 +41,14 @@ public class Client extends JFrame{
 	private static final long serialVersionUID = -2678921125605551080L;
 	BufferedWriter bufferedWriter;
 	Socket socket;
-	private JPanel right;
 	private JPanel leftToolbar;
 	final JFrame frame = this;
+	private JDialog showUsersPopUp;
 	ConnectionClient conn;
-	private JTextArea errors;
+	private JLabel errors = new JLabel();
 	Chat chat;
+	
+	GameClient game = null;
 	
 	public Client() throws UnknownHostException, IOException {		
 		
@@ -57,17 +67,13 @@ public class Client extends JFrame{
 		leftToolbar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 5));
 		panel.add(left, BorderLayout.WEST);
 		left.add(leftToolbar, BorderLayout.NORTH);
-		
-		right = new JPanel();
-		right.setBackground(Color.getHSBColor(0, 0, (float) 0.2));
-		panel.add(right, BorderLayout.CENTER);
-		
+				
 		//left
-		errors = new JTextArea();
-		errors.setEditable(false);
+		//errors.setEditable(false);
 		errors.setForeground(Color.RED);
-		errors.setPreferredSize(new Dimension(100, 50));
-		leftToolbar.add(errors);
+		JScrollPane errorScrollPane = new JScrollPane(errors);
+		errorScrollPane.setPreferredSize(new Dimension(100, 50));
+		leftToolbar.add(errorScrollPane);
 		
 		JPanel connSpecs = new JPanel();
 		JPanel connSpecsTop = new JPanel();
@@ -117,7 +123,7 @@ public class Client extends JFrame{
 					}
 					socket = new Socket(hostText.getText(), Integer.parseInt(portText.getText()));
 					conn = new ConnectionClient(socket);
-					conn.addConnectionListener(new ConnectionListener() {
+					conn.addMessageListener(new ConnectionListener() {
 
 						@Override
 						public void onMessage(Command com) {
@@ -153,8 +159,10 @@ public class Client extends JFrame{
 		setJMenuBar(menuBar);
 		JMenuItem setUsername = new JMenuItem("Ustaw nazwę użytkownika");
 		JMenuItem clearChat = new JMenuItem("Wyczyść czat");
+		JMenuItem showUsers = new JMenuItem("Pokaż użytkowników");
 		menuBar.add(setUsername);
 		menuBar.add(clearChat);
+		menuBar.add(showUsers);
 		setUsername.addActionListener(new ActionListener() {
 			
 			@Override
@@ -177,10 +185,70 @@ public class Client extends JFrame{
 				chat.clear();
 			}
 		});
+		showUsers.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				SwingUtilities.invokeLater(new Runnable() {
+					
+					@Override
+					public void run() {
+						if(showUsersPopUp != null) showUsersPopUp.dispose();
+						showUsersPopUp = new JDialog(frame, "Połączeni użytkownicy", Dialog.ModalityType.DOCUMENT_MODAL);
+						JPanel showUsersPanel = new JPanel();
+
+						try {
+							conn.sendAndAwait(new Command(ClientToServer.GET_USERS, ""), new AutoStopMessageListener() {
+								
+								@Override
+								public void onMessage(Command com) {
+									showUsersPopUp.add(showUsersPanel);
+									showUsersPanel.setLayout(new BoxLayout(showUsersPanel, BoxLayout.Y_AXIS));
+
+									if(com.context.equals(ServerToClient.USERLIST.getLabel())) {
+										String[] userNames = com.body.split("\\|");
+										JPanel panel = new JPanel();
+										panel.add(new JLabel(userNames[0]));
+										panel.add(new JLabel("(Ty)"));
+										showUsersPanel.add(panel);
+										for(int i=1;i<userNames.length;i++) {
+											String userName=userNames[i];
+											panel = new JPanel();
+											panel.add(new JLabel(userName));
+											panel.add(new JButton("Zaproś"));
+											showUsersPanel.add(panel);
+										}
+									}
+									try {
+										Thread.sleep(100);
+									} catch (InterruptedException e) {
+									}
+									showUsersPopUp.pack();
+									showUsersPopUp.setSize(
+											showUsersPopUp.getWidth()+10, 
+											showUsersPopUp.getHeight()+5
+											);
+									showUsersPopUp.setLocation(frame.getX()+frame.getWidth()/2-showUsersPopUp.getWidth()/2, frame.getY()+frame.getHeight()/2-showUsersPopUp.getHeight()/2);
+									showUsersPopUp.setVisible(true);
+								}
+								
+								@Override
+								public ServerToClient getContext() {
+									return ServerToClient.USERLIST;
+								}
+							});
+						} catch (IOException e1) {
+							e1.printStackTrace();
+						}
+					}
+				});
+			}
+		});
+		
 	}
 
 	//private revalidateResize()
-	
+	/*
 	public static void main(String[] args) throws Exception{
 	   SwingUtilities.invokeLater(new Runnable() {
 		
@@ -205,6 +273,6 @@ public class Client extends JFrame{
        Thread.sleep(10000);
        socket.close();
        System.out.println("closed");
-       */
-   }
+       
+   }*/
 }

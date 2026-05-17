@@ -23,6 +23,10 @@ interface ClientToServerMessageListener{
 	void onMessage(Command command, User user);
 }
 
+interface OutSendListener{
+	void onMessage(String target, Command command);
+}
+
 public class ConnectionManager {
 	ConnectionManager server = this;
 	ServerSocket serverSocket; 
@@ -31,7 +35,9 @@ public class ConnectionManager {
 	boolean running = true;
 	ConnectionListener connectionListener;
 	
-	LinkedList<ClientToServerMessageListener> mesListeners = new LinkedList<ClientToServerMessageListener>();
+	private final LinkedList<ClientToServerMessageListener> mesListeners = new LinkedList<ClientToServerMessageListener>();
+	private final LinkedList<OutSendListener> outListeners = new LinkedList<OutSendListener>();
+	
 	public ConnectionManager(int port, ConnectionListener listener) throws IOException {
 		this.connectionListener = listener;
 		serverSocket = new ServerSocket(port);
@@ -95,15 +101,21 @@ public class ConnectionManager {
 		recieveMessages.start();
 	}
 	
-	protected void send(Command com, User user) throws IOException {
+	private void sendWT(Command com, User user) throws IOException {
 		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(user.socket.getOutputStream()));
 		writer.write(Command.encode(com));
 		writer.write("\n");
 		writer.flush();
 	}
 	
+	protected void send(Command com, User user) throws IOException {
+		sendWT(com, user);
+		for(OutSendListener listener : outListeners) listener.onMessage(user.userName + ", ID: "+user.ID, com);
+	}
+	
 	protected void sendAll(Command com) throws IOException {
-		for(User user : users) send(com, user);
+		for(User user : users) sendWT(com, user);
+		for(OutSendListener listener : outListeners) listener.onMessage("|ALL|", com);
 	}
 	
 	protected void close() {
@@ -119,6 +131,10 @@ public class ConnectionManager {
 	
 	protected void addMessageListener(ClientToServerMessageListener listener) {
 		mesListeners.add(listener);
+	}
+	
+	protected void addSendListener(OutSendListener listener) {
+		outListeners.add(listener);
 	}
 	
 	static private String nextDefaultUsername(LinkedList<User> users) {

@@ -126,20 +126,16 @@ public class ServerGraphics extends JFrame{
 			public void onMessage(Command command, User user) {
 				serverRecieveText.append("\n"+user.ID + "  " + user.userName + "  " + Command.encode(command));
 				serverRecieveText.revalidate();
-				switch(CommandType.get(command.context, ClientToServer.values())) {
-				case ClientToServer.CHAT:
-					chatText.append(command.body+"\n");
-					chatText.revalidate();
-					try {
-						server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.CHAT, Command.encode(user.userName, command.body))));
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
-					break;
-				case ClientToServer.SET_USERNAME:
-				caseBlock:
-				{
-					try {
+				try {
+					switch(CommandType.get(command.context, ClientToServer.values())) {
+					case ClientToServer.CHAT:
+						chatText.append(command.body+"\n");
+						chatText.revalidate();
+							server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.CHAT, Command.encode(user.userName, command.body))));
+						break;
+					case ClientToServer.SET_USERNAME:
+					caseBlock:
+					{
 						for(User us : server.getUsers()) {
 							if(us.userName.equals(command.body)) {
 								server.send(new Command(ServerToClient.ERROR_PANE, "Username "+command.body + " already in use."), user);
@@ -160,10 +156,26 @@ public class ServerGraphics extends JFrame{
 						revalidateUsers();
 						server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "User "+oldUserName+" changed their username to " + user.userName)));
 						break caseBlock;
-					} catch(IOException e) {e.printStackTrace();}
+					}
+					case ClientToServer.GET_USERS:
+						String userNames = user.userName;
+						for(User u : server.getUsers())	
+							if(u != user)	userNames+="|"+u.userName;
+						server.send(new Command(ServerToClient.USERLIST, userNames), user);
+						break;
+					default:
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-				default:
-				}
+			}
+		});
+		
+		server.addSendListener(new OutSendListener() {
+			
+			@Override
+			public void onMessage(String target, Command command) {
+				serverSendText.append("\n"+target + ": "+Command.encode(command));
 			}
 		});
 
@@ -171,15 +183,15 @@ public class ServerGraphics extends JFrame{
 	
 	static public final Object lock = new Object();
 	private void revalidateUsers() {
-		namesPanel.removeAll();
-		namesPanel.add(new JTextField("Users:"));
-		synchronized(lock){
+		synchronized(lock) {
+			namesPanel.removeAll();
+			namesPanel.add(new JTextField("Users:"));
 			for(User user : server.getUsers()) {
 				JTextArea userText = new JTextArea(user.userName);
 				userText.setEditable(false);
 				namesPanel.add(userText);
 			}
+			revalidate();
 		}
-		revalidate();
 	}
 }

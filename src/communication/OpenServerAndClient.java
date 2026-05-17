@@ -1,5 +1,6 @@
 package communication;
 
+import java.awt.Point;
 import java.io.IOException;
 
 import javax.swing.SwingUtilities;
@@ -10,13 +11,14 @@ import server.ServerGraphics;
 class OpenServerAndClient {
 	public static void main(String[] args) {
 	    final int clients = 2;
-		for(int i=0;i<clients ;i++) {
+		for(int i=0;i<clients;i++) {
+			int j=i;
 		   SwingUtilities.invokeLater(new Runnable() {
-				
 				@Override
 				public void run() {
 					try {
 						Client client = new Client();
+						client.setLocation(new Point(j*client.getWidth(),0));
 						client.setVisible(true);
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -32,9 +34,9 @@ class OpenServerAndClient {
 				ServerGraphics frame;
 				try {
 					frame = new ServerGraphics();
+					frame.setLocation(700, 500);
 					frame.setVisible(true);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
