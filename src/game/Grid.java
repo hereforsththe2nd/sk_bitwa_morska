@@ -36,8 +36,9 @@ class Rectangle{
 interface Drawable{
 	static int BOTTOM_LAYER = 0,
 			TOP_LAYER = Integer.MAX_VALUE;
-	void draw(Rectangle bounds, Position r, Graphics2D g2d);
+	void draw(Rectangle bounds, Graphics2D g2d);
 	int layer();
+	Position getPosition();
 }
 
 public class Grid extends JPanel {
@@ -110,14 +111,9 @@ public class Grid extends JPanel {
 				);
 	}
 	
-	public void addDrawable(Drawable d, Position r, Integer layer) {
-		Drawable[][] draw = layers.get(layer).getDraw();
-		draw[r.x][r.y] = d;
-	}
-	
-	public void removeDrawable(Position r, int layer) {
-		if(r==null) return;
-		layers.get(layer).getDraw()[r.x][r.y]= null; 
+	public void addDrawable(Drawable d, Integer layer) {
+		LinkedList<Drawable> draw = layers.get(layer).getDraw();
+		draw.add(d);
 	}
 	
 	public void addRepaintRequest(int layer) {
@@ -139,13 +135,10 @@ public class Grid extends JPanel {
 				Graphics2D lg2d = l.getImg().createGraphics();
 				lg2d.setBackground(new Color(255,0,0,0));
 				lg2d.clearRect(0, 0, getWidth(), getHeight());
-				for(int x=0;x<N1;x++) {
-					for(int y=0;y<N2;y++) {
-						Position r= new Position(x,y);
-						if(l.getDraw()[r.x][r.y]!=null) {
-							Rectangle bounds = getBounds(r);
-							l.getDraw()[r.x][r.y].draw(bounds, r, lg2d);
-						}
+				for(Drawable d : l.getDraw()) {
+					if(d.getPosition() != null) {
+						Rectangle bounds = getBounds(d.getPosition());
+						d.draw(bounds, lg2d);
 					}
 				}
 				l.setRepaint(false);
@@ -172,8 +165,8 @@ public class Grid extends JPanel {
 		private Integer layer;
 		private boolean repaint=false;
 		
-		private final Drawable[][] draw = new Drawable[N1][N2];//założenie jest, że ta lista jest posortowana wg layer
-		
+		//private final Drawable[][] draw = new Drawable[N1][N2];//założenie jest, że ta lista jest posortowana wg layer
+		private final LinkedList<Drawable> draw = new LinkedList<Drawable>();
 		private Layer(BufferedImage img, Integer layer) {
 			this.img=img;
 			this.layer=layer;
@@ -198,7 +191,7 @@ public class Grid extends JPanel {
 			this.repaint = repaint;
 		}
 		
-		public Drawable[][] getDraw() {
+		public LinkedList<Drawable> getDraw() {
 			return draw;
 		}
 		

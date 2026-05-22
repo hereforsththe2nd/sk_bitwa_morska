@@ -7,6 +7,7 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.LinkedList;
 
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
@@ -23,8 +24,9 @@ import communication.CommandType;
 import communication.GameClientToServer;
 import communication.ServerToClient;
 import communication.User;
+import game.ServerGame;
 
-public class ServerGraphics extends JFrame{
+public class Server extends JFrame{
 
 	/**
 	 * 
@@ -33,26 +35,27 @@ public class ServerGraphics extends JFrame{
 
 	JPanel namesPanel;
 	JScrollPane namesScrollPane;
-	ConnectionManager server;
+	ConnectionManager communication;
+	private final LinkedList<ServerGame> games = new LinkedList<ServerGame>();
 	
-	public ServerGraphics() throws IOException {
+	public Server() throws IOException {
 		super();
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {
 			
 			@Override
 			public void windowClosed(WindowEvent e) {
-				server.close();				
+				communication.close();				
 			}
 		});
 		setLayout(new FlowLayout());
 		
-		server = new ConnectionManager(8000);
-		server.setConnectionListener( new ConnectionListener() {			
+		communication = new ConnectionManager(8000);
+		communication.setConnectionListener( new ConnectionListener() {			
 			@Override
 			public void onConnection(Socket socket, User user) {
 				try {
-					server.send(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "Udało połączyć się ze serwerem.")), user);
+					communication.send(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "Udało połączyć się ze serwerem.")), user);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -90,7 +93,7 @@ public class ServerGraphics extends JFrame{
 		activity.add(serverRecieveScrollPane);
 		activity.add(serverSendScrollPane);
 		add(activity);
-		server.addMessageListener(new ClientToServerMessageListener() {
+		communication.addMessageListener(new ClientToServerMessageListener() {
 			@Override
 			public void onMessage(Command command, User user) {
 				serverRecieveText.append("\n"+user.ID + "  " + user.userName + "  " + Command.encode(command));
@@ -100,37 +103,58 @@ public class ServerGraphics extends JFrame{
 					case ClientToServer.CHAT:
 						chatText.append(command.body+"\n");
 						chatText.revalidate();
-							server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.CHAT, Command.encode(user.userName, command.body))));
+							communication.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.CHAT, Command.encode(user.userName, command.body))));
 						break;
 					case ClientToServer.SET_USERNAME:
 					caseBlock:
 					{
-						for(User us : server.getUsers()) {
+						for(User us : communication.getUsers()) {
 							if(us.userName.equals(command.body)) {
-								server.send(new Command(ServerToClient.ERROR_PANE, "Username "+command.body + " already in use."), user);
+								communication.send(new Command(ServerToClient.ERROR_PANE, "Username "+command.body + " already in use."), user);
 								break caseBlock;
 							}
 						}
 						if(command.body.contains("|")) {
-							server.send(new Command(ServerToClient.ERROR_PANE, "Username cannot contain '|'."), user);
+							communication.send(new Command(ServerToClient.ERROR_PANE, "Username cannot contain '|'."), user);
 							break caseBlock;
 							
 						}
 						if(command.body.equals("")) {
-							server.send(new Command(ServerToClient.ERROR_PANE, "Username cannot be empty."), user);
+							communication.send(new Command(ServerToClient.ERROR_PANE, "Username cannot be empty."), user);
 							break caseBlock;
 						}
 						String oldUserName = user.userName;
 						user.setUserName(command.body);
 						revalidateUsers();
-						server.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "User "+oldUserName+" changed their username to " + user.userName)));
+						communication.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "User "+oldUserName+" changed their username to " + user.userName)));
 						break caseBlock;
 					}
 					case ClientToServer.GET_USERS:
 						String userNames = user.userName;
-						for(User u : server.getUsers())	
+						for(User u : communication.getUsers())	
 							if(u != user)	userNames+="|"+u.userName;
-						server.send(new Command(ServerToClient.USERLIST, userNames), user);
+						communication.send(new Command(ServerToClient.USERLIST, userNames), user);
+						break;
+					case ClientToServer.INVITE:
+					caseBlock:
+					{
+						User tryingToInvite = communication.getUser(command.body);
+						if(tryingToInvite == null)
+							communication.send(new Command(ServerToClient.ERROR_PANE, "User with the user name " + command.body + " does not exist."), user);
+						else for(ServerGame game : games) {
+								if(game.users[0] == user || game.users[1] == user) {
+									communication.send(new Command(ServerToClient.ERROR_PANE, "Już jesteś w grze!"), user);
+									break caseBlock;
+								}
+								if(game.users[0] == tryingToInvite || game.users[1] == tryingToInvite) {
+									communication.send(new Command(ServerToClient.ERROR_PANE, "Użytkownik " + tryingToInvite.userName + " is already in a game."), user);
+									break caseBlock;
+								}
+							}
+						games.add(new ServerGame(user, tryingToInvite));
+						communication.send(new Command(ServerToClient.START_GAME, "Zacząłeś grę z graczem " + tryingToInvite.userName), user);
+						communication.send(new Command(ServerToClient.START_GAME, "Gracz " + user.userName + " zaczął z tobą grę."), tryingToInvite);
+					}
 						break;
 					default:
 					}
@@ -139,7 +163,7 @@ public class ServerGraphics extends JFrame{
 				}
 			}
 		});
-		server.addSendListener(new OutSendListener() {
+		communication.addSendListener(new OutSendListener() {
 			
 			@Override
 			public void onMessage(String target, Command command) {
@@ -154,7 +178,7 @@ public class ServerGraphics extends JFrame{
 		synchronized(lock) {
 			namesPanel.removeAll();
 			namesPanel.add(new JTextField("Users:"));
-			for(User user : server.getUsers()) {
+			for(User user : communication.getUsers()) {
 				JTextArea userText = new JTextArea(user.userName);
 				userText.setEditable(false);
 				namesPanel.add(userText);

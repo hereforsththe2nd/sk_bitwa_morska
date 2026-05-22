@@ -164,14 +164,21 @@ public class ConnectionManager {
 		return users;
 	}
 	
+	protected User getUser(String userName) {
+		for(User u : users)
+			if(u.userName.equals(userName))
+				return u;
+		return null;
+	}
+	
 	private void removeUser(User user) {
-		synchronized(ServerGraphics.lock) {
+		synchronized(Server.lock) {
 			users.remove(user);
 		}
 	}
 	
 	private void addUser(User user) {
-		synchronized (ServerGraphics.lock) {
+		synchronized (Server.lock) {
 			users.add(user);
 		}
 	}

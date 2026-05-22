@@ -5,6 +5,7 @@ public enum ServerToClient implements CommandType{
 	ERROR_PANE("ERROR_PANE"),
 	GAME("GAME"), 
 	USERLIST("USERLIST"),
+	START_GAME("START_GAME"),
 	;
 	private final String label;
 	private ServerToClient(String label) {

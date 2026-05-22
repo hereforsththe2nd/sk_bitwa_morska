@@ -22,6 +22,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import game.Drawables.Hover;
 import game.Drawables.Tiles;
 
 
@@ -36,7 +37,6 @@ public class Board extends JPanel {
 	private final static String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	Position mousePosition = null;
 	LinkedList<Position> selected = new LinkedList<Position>();
-	Drawable hover = new Drawables.Hover();
 	
 	private Grid grid;
 	
@@ -47,26 +47,22 @@ public class Board extends JPanel {
 	
 	public Board(int width, int height) {
 		grid = new Grid(N,N, 4);
-		Tiles tiles = new Tiles();
-		
 		for(int x=0;x<grid.getN1();x+=1)
 			for(int y=0;y<grid.getN2();y++)
-				grid.addDrawable(tiles, new Position(x,y), TILE);
-				
+				grid.addDrawable(new Tiles(new Position(x, y)), TILE);
+		
+		Hover hover = new Hover();
+		grid.addDrawable(hover, HOVER);
 		grid.setMaximumSize(new Dimension(width, height));
 		grid.setPreferredSize(new Dimension(width, height));
 		grid.addMouseMotionListener(new MouseMotionListener() {
 			
 			@Override
 			public void mouseMoved(MouseEvent e) {
-				Position newMousePosition = grid.getCoords(e.getX(), e.getY());
-				if(!newMousePosition.equals(mousePosition)) {
-					grid.removeDrawable(mousePosition, HOVER);
-					mousePosition = newMousePosition;
-					grid.addDrawable(hover, mousePosition, HOVER);
-					grid.addRepaintRequest(HOVER);
-					grid.repaint();
-				}
+				mousePosition = grid.getCoords(e.getX(), e.getY());
+				hover.setPosition(mousePosition);
+				grid.addRepaintRequest(HOVER);
+				grid.repaint();
 			}
 			
 			@Override
@@ -81,9 +77,8 @@ public class Board extends JPanel {
 		grid.addMouseListener(new MouseAdapter() {			
 			@Override
 			public void mouseExited(MouseEvent e) {
-				grid.removeDrawable(mousePosition, HOVER);
+				hover.setPosition(null);
 				grid.addRepaintRequest(HOVER);
-				mousePosition = null;
 				grid.repaint();
 			}
 			

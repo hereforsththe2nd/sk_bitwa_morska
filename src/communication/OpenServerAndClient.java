@@ -6,7 +6,7 @@ import java.io.IOException;
 import javax.swing.SwingUtilities;
 
 import client.Client;
-import server.ServerGraphics;
+import server.Server;
 
 class OpenServerAndClient {
 	public static void main(String[] args) {
@@ -31,9 +31,9 @@ class OpenServerAndClient {
 			
 		   @Override
 		   public void run() {
-				ServerGraphics frame;
+				Server frame;
 				try {
-					frame = new ServerGraphics();
+					frame = new Server();
 					frame.setLocation(700, 500);
 					frame.setSize(500,300);
 					frame.setVisible(true);

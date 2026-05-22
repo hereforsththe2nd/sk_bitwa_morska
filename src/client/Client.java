@@ -128,11 +128,17 @@ public class Client extends JFrame{
 
 						@Override
 						public void onMessage(Command com) {
-							System.out.println("blablabla");
 							switch(CommandType.get(com.context, ServerToClient.values())) {
 							case ServerToClient.CHAT:
 								Command message = Command.decode(com.body);
 								chat.exec(message);
+								break;
+							case ServerToClient.START_GAME:
+								JOptionPane pane = new JOptionPane(com.body, JOptionPane.INFORMATION_MESSAGE);
+								JDialog dialog = pane.createDialog("Rozpoczęto grę");
+								dialog.setModalityType(JDialog.ModalityType.MODELESS);
+								dialog.setLocation(frame.getX()+frame.getWidth()/2-dialog.getWidth()/2, frame.getY()+frame.getHeight()/2-dialog.getHeight()/2);
+								dialog.setVisible(true);
 								break;
 							case ServerToClient.ERROR_PANE:
 								JOptionPane.showMessageDialog(frame, com.body, "", JOptionPane.ERROR_MESSAGE);
@@ -196,7 +202,7 @@ public class Client extends JFrame{
 					@Override
 					public void run() {
 						if(showUsersPopUp != null) showUsersPopUp.dispose();
-						showUsersPopUp = new JDialog(frame, "Połączeni użytkownicy", Dialog.ModalityType.DOCUMENT_MODAL);
+						showUsersPopUp = new JDialog(frame, "Połączeni użytkownicy", Dialog.ModalityType.MODELESS);
 						JPanel showUsersPanel = new JPanel();
 
 						try {
@@ -217,7 +223,9 @@ public class Client extends JFrame{
 											String userName=userNames[i];
 											panel = new JPanel();
 											panel.add(new JLabel(userName));
-											panel.add(new JButton("Zaproś"));
+											JButton butt = new InviteButton(conn, userName, errors);
+											
+											panel.add(butt);
 											showUsersPanel.add(panel);
 										}
 									}
@@ -246,6 +254,7 @@ public class Client extends JFrame{
 				});
 			}
 		});
+	
 		
 	}
 
