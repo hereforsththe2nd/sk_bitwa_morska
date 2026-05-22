@@ -2,6 +2,7 @@ package server;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.IOException;
@@ -19,6 +20,7 @@ import communication.ChatList;
 import communication.ClientToServer;
 import communication.Command;
 import communication.CommandType;
+import communication.GameClientToServer;
 import communication.ServerToClient;
 import communication.User;
 
@@ -36,57 +38,24 @@ public class ServerGraphics extends JFrame{
 	public ServerGraphics() throws IOException {
 		super();
 		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-		addWindowListener(new WindowListener() {
-			
-			@Override
-			public void windowOpened(WindowEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void windowIconified(WindowEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void windowDeiconified(WindowEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void windowDeactivated(WindowEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
-			
-			@Override
-			public void windowClosing(WindowEvent e) {
-				// TODO Auto-generated method stub
-				
-			}
+		addWindowListener(new WindowAdapter() {
 			
 			@Override
 			public void windowClosed(WindowEvent e) {
-				server.close();
-				
-			}
-			
-			@Override
-			public void windowActivated(WindowEvent e) {
-				// TODO Auto-generated method stub
-				
+				server.close();				
 			}
 		});
-		setSize(800,600);
 		setLayout(new FlowLayout());
 		
-		server = new ConnectionManager(8000, new ConnectionListener() {			
+		server = new ConnectionManager(8000);
+		server.setConnectionListener( new ConnectionListener() {			
 			@Override
 			public void onConnection(Socket socket, User user) {
-				System.out.println("Połączono się z użytkownikiem " + user.print());
+				try {
+					server.send(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "Udało połączyć się ze serwerem.")), user);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 				revalidateUsers();
 			}
 
@@ -170,7 +139,6 @@ public class ServerGraphics extends JFrame{
 				}
 			}
 		});
-		
 		server.addSendListener(new OutSendListener() {
 			
 			@Override

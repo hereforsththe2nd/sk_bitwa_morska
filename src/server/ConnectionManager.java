@@ -28,18 +28,17 @@ interface OutSendListener{
 }
 
 public class ConnectionManager {
-	ConnectionManager server = this;
-	ServerSocket serverSocket; 
-	Thread newConnections;
+	private ConnectionManager server = this;
+	private ServerSocket serverSocket; 
+	private Thread newConnections;
 	private LinkedList<User> users = new LinkedList<User>();
-	boolean running = true;
-	ConnectionListener connectionListener;
+	private boolean running = true;
+	private ConnectionListener connectionListener;
 	
 	private final LinkedList<ClientToServerMessageListener> mesListeners = new LinkedList<ClientToServerMessageListener>();
 	private final LinkedList<OutSendListener> outListeners = new LinkedList<OutSendListener>();
 	
-	public ConnectionManager(int port, ConnectionListener listener) throws IOException {
-		this.connectionListener = listener;
+	public ConnectionManager(int port) throws IOException {
 		serverSocket = new ServerSocket(port);
 		newConnections = new Thread(new Runnable() {
 			@Override
@@ -63,7 +62,7 @@ public class ConnectionManager {
 		User user = new User(socket);
 		addUser(user);
 		user.userName = nextDefaultUsername(users);
-		connectionListener.onConnection(socket, users.getLast());
+		if(connectionListener!=null) connectionListener.onConnection(socket, users.getLast());
 		BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		//BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 		Thread recieveMessages = new Thread(new Runnable() {
@@ -116,6 +115,10 @@ public class ConnectionManager {
 	protected void sendAll(Command com) throws IOException {
 		for(User user : users) sendWT(com, user);
 		for(OutSendListener listener : outListeners) listener.onMessage("|ALL|", com);
+	}
+	
+	protected void setConnectionListener(ConnectionListener listener) {
+		this.connectionListener=listener;
 	}
 	
 	protected void close() {

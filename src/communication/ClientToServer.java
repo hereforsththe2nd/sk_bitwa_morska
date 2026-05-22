@@ -4,7 +4,7 @@ public enum ClientToServer implements CommandType{
 	SET_USERNAME("SET_USERNAME"),
 	CHAT("CHAT"),
 	GAME("GAME"), 
-	GET_USERS("GET_USERS"),
+	GET_USERS("GET_USERS");
 	;
 	private final String label;
 	private ClientToServer(String label) {

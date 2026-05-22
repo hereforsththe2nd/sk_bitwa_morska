@@ -22,19 +22,23 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 
+import game.Drawables.Tiles;
+
 
 public class Board extends JPanel {
 
-	final int N = 20;
-	private final Color color1=new Color(192,149,55);
-	private final Color color2=new Color(150,124,68);
-	private final Color hoverColor = new Color(51, 49, 43, 150);
-	private final Color hoverColor2 = new Color(51, 49, 70, 120);
+	public static final int TILE=0,
+			SHIP=1,
+			SIGN=2,
+			HOVER=3;
+	
+	final int N = 10;
 	private final static String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	Position mousePosition = null;
 	LinkedList<Position> selected = new LinkedList<Position>();
+	Drawable hover = new Drawables.Hover();
 	
-	private JPanel main;
+	private Grid grid;
 	
 	/**
 	 * 
@@ -42,81 +46,27 @@ public class Board extends JPanel {
 	private static final long serialVersionUID = -6889931911537334441L;
 	
 	public Board(int width, int height) {
-		main = new JPanel() {
-			int tileWidth, tileHeight, widthRest, heightRest;
-			
-			private void fillRect(int i,int j, Color outline, Graphics2D g2d) {
-				int bx1,by1,bx2,by2;
-				if(i==N-1 && j==N-1) {
-					bx1 = tileWidth*i;
-					by1 = tileHeight*j;
-					bx2 = tileWidth+widthRest;
-					by2 = tileHeight+heightRest;
-					
-				}
-				else if(i==N-1) {
-					bx1 = tileWidth*i;
-					by1 = tileHeight*j;
-					bx2 = tileWidth+widthRest;
-					by2 = tileHeight;
-				}
-				else if(j==N-1) { 
-					bx1 = tileWidth*i;
-					by1 = tileHeight*j;
-					bx2 = tileWidth;
-					by2 = tileHeight+heightRest;
-				}
-				else { 
-					bx1 = tileWidth*i;
-					by1 = tileHeight*j;
-					bx2 = tileWidth;
-					by2 = tileHeight;
-				}
-				g2d.fillRect(bx1, by1, bx2, by2);
-				g2d.setColor(outline);
-				g2d.drawRect(bx1, by1, bx2, by2);
-			}
-			
-			@Override
-			protected void paintComponent(Graphics g) {
-				super.paintComponent(g);
-				Graphics2D g2d = (Graphics2D)g;
-				Color recColor;
-				tileWidth = main.getWidth()/N;
-				tileHeight = main.getHeight()/N;
-				widthRest = main.getWidth()%N;
-				heightRest = main.getHeight()%N;
-				for(int i=0;i<N;i++) {
-					for(int j=0;j<N;j++) {
-						if((i+j)%2 == 0)	recColor = color1;
-						else	recColor=color2;
-						g2d.setColor(recColor);
-						fillRect(i, j,Color.BLACK, g2d);
-						if(mousePosition!=null && i==mousePosition.x && j==mousePosition.y) {
-							g2d.setColor(hoverColor);
-							fillRect(i, j, Color.BLACK, g2d);
-						}
-						if(selected.contains(new Position(i, j))) {
-							g2d.setColor(hoverColor2);
-							fillRect(i, j, Color.BLACK, g2d);
-						}
-					}
-				}
+		grid = new Grid(N,N, 4);
+		Tiles tiles = new Tiles();
+		
+		for(int x=0;x<grid.getN1();x+=1)
+			for(int y=0;y<grid.getN2();y++)
+				grid.addDrawable(tiles, new Position(x,y), TILE);
 				
-			}
-		};
-		main.setMaximumSize(new Dimension(width, height));
-		main.setPreferredSize(new Dimension(width, height));
-		main.setBorder(BorderFactory.createLineBorder(Color.BLACK, 3));
-		main.addMouseMotionListener(new MouseMotionListener() {
+		grid.setMaximumSize(new Dimension(width, height));
+		grid.setPreferredSize(new Dimension(width, height));
+		grid.addMouseMotionListener(new MouseMotionListener() {
 			
 			@Override
 			public void mouseMoved(MouseEvent e) {
-				int xn = e.getX() * N/main.getWidth();
-				int yn = e.getY() * N/main.getHeight();
-				if(xn<0 || yn<0 || xn>=N || yn>=N) mousePosition = null;
-				else mousePosition = new Position(xn, yn);
-				main.repaint();
+				Position newMousePosition = grid.getCoords(e.getX(), e.getY());
+				if(!newMousePosition.equals(mousePosition)) {
+					grid.removeDrawable(mousePosition, HOVER);
+					mousePosition = newMousePosition;
+					grid.addDrawable(hover, mousePosition, HOVER);
+					grid.addRepaintRequest(HOVER);
+					grid.repaint();
+				}
 			}
 			
 			@Override
@@ -128,11 +78,13 @@ public class Board extends JPanel {
 			
 			
 		});
-		main.addMouseListener(new MouseAdapter() {			
+		grid.addMouseListener(new MouseAdapter() {			
 			@Override
 			public void mouseExited(MouseEvent e) {
+				grid.removeDrawable(mousePosition, HOVER);
+				grid.addRepaintRequest(HOVER);
 				mousePosition = null;
-				main.repaint();
+				grid.repaint();
 			}
 			
 			@Override
@@ -141,14 +93,14 @@ public class Board extends JPanel {
 				if((selected.size() == 1 || selected.size() == 0) &&  mousePosition!=null)
 					System.out.println("Clicked square " + mousePosition);
 				selected.removeAll(selected);
-				main.repaint();
+				grid.repaint();
 			}
 			
 			@Override
 			public void mousePressed(MouseEvent e) {
 				super.mousePressed(e);
 				selected.add(mousePosition);
-				main.repaint();
+				grid.repaint();
 			}
 		});
 		
@@ -189,7 +141,7 @@ public class Board extends JPanel {
 		topRow.setMinimumSize(new Dimension(0,20));
 		leftColumn.setMinimumSize(new Dimension(20,0));
 		setLayout(new BoardLayout());
-		add(main, BoardLayout.Location.CENTER);
+		add(grid, BoardLayout.Location.CENTER);
 		add(leftColumn, BoardLayout.Location.LEFT);
 		add(topRow, BoardLayout.Location.TOP);
 	}
@@ -199,9 +151,7 @@ public class Board extends JPanel {
 			@Override
 			public void run() {
 				JFrame frame = new JFrame();
-				frame.setBackground(Color.magenta);
 				frame.setSize(334,223);
-				frame.getContentPane().setBackground(Color.green);
 				frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 				Board board = new Board(500, 500);
 				frame.add(board);

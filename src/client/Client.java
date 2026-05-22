@@ -31,6 +31,7 @@ import client.ConnectionClient.ConnectionListener;
 import communication.ClientToServer;
 import communication.Command;
 import communication.CommandType;
+import communication.GameClientToServer;
 import communication.ServerToClient;
 import game.GameClient;
 
@@ -127,6 +128,7 @@ public class Client extends JFrame{
 
 						@Override
 						public void onMessage(Command com) {
+							System.out.println("blablabla");
 							switch(CommandType.get(com.context, ServerToClient.values())) {
 							case ServerToClient.CHAT:
 								Command message = Command.decode(com.body);
@@ -274,5 +276,6 @@ public class Client extends JFrame{
        socket.close();
        System.out.println("closed");
        
-   }*/
+ 	}
+	}*/
 }
