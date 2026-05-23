@@ -154,14 +154,12 @@ public class ServerConnectionManager {
 		//nieidealny, ale w żadnej sytuacji okropny
 		final String defaultName = "default";
 		String ret;
-		int i = -1;
+		int i=-1;
 		for(User user : users) {
 			if(user.userName == null) continue;
-			if(user.userName.length() == defaultName.length()+1) {
-				if(user.userName.matches(defaultName+"[0-9]*")) {
-					int ind = Integer.parseInt(String.valueOf(user.userName.charAt(user.userName.length()-1)));
-					if(ind > i) i = ind;
-				}
+			if(user.userName.matches(defaultName+"[0-9]+")) {
+				int ind = Integer.parseInt(String.valueOf(user.userName.substring(defaultName.length(), user.userName.length())));
+				if(ind > i) i = ind;
 			}
 		}
 		i++;

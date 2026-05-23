@@ -6,6 +6,7 @@ public enum ServerToClient implements CommandType{
 	GAME("GAME"), 
 	USERLIST("USERLIST"),
 	START_GAME("START_GAME"),
+	YOUR_USERNAME("YOUR_USERNAME")
 	;
 	private final String label;
 	private ServerToClient(String label) {

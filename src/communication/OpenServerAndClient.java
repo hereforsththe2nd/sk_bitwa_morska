@@ -35,7 +35,7 @@ class OpenServerAndClient {
 				try {
 					frame = new Server();
 					frame.setLocation(700, 500);
-					frame.setSize(500,300);
+					frame.setSize(700,400);
 					frame.setVisible(true);
 				} catch (IOException e) {
 					e.printStackTrace();

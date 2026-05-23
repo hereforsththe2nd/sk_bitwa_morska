@@ -12,10 +12,12 @@ import java.util.LinkedList;
 import javax.swing.BoxLayout;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
+import javax.swing.text.DefaultCaret;
 
 import communication.ChatList;
 import communication.ClientToServer;
@@ -55,6 +57,7 @@ public class Server extends JFrame{
 				try {
 					communication.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "Użytkownik " + user.userName + " połączył się z serwerem.")));
 					communication.send(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "Udało połączyć się ze serwerem.")), user);
+					communication.send(new Command(ServerToClient.YOUR_USERNAME, user.userName), user);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -83,6 +86,8 @@ public class Server extends JFrame{
 		add(namesScrollPane);
 		
 		JTextArea chatText = new JTextArea("CHAT\n");
+		DefaultCaret chatTextCaret = (DefaultCaret) chatText.getCaret();
+		chatTextCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		JScrollPane chatScroll = new JScrollPane(chatText);
 		chatScroll.setPreferredSize(new Dimension(200,100));
 		add(chatScroll);
@@ -90,9 +95,16 @@ public class Server extends JFrame{
 		JPanel activity = new JPanel();
 		activity.setLayout(new FlowLayout(FlowLayout.RIGHT));
 		JTextArea serverSendText = new JTextArea("send");
+		DefaultCaret serverSendCaret = (DefaultCaret) serverSendText.getCaret();
+		serverSendCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+
 		serverSendText.setEditable(false);
 		JTextArea serverRecieveText = new JTextArea("rec");
 		serverRecieveText.setEditable(false);
+		DefaultCaret serverRecieveCaret = (DefaultCaret) serverRecieveText.getCaret();
+		serverRecieveCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+
+		//serverRecieveText.setEditable(false);
 		JScrollPane serverSendScrollPane = new JScrollPane(serverSendText);
 		JScrollPane serverRecieveScrollPane = new JScrollPane(serverRecieveText);
 		serverRecieveScrollPane.setPreferredSize(new Dimension(300,150));
@@ -104,7 +116,7 @@ public class Server extends JFrame{
 			@Override
 			public void onMessage(Command command, User user) {
 				serverRecieveText.append("\n"+user.ID + "  " + user.userName + "  " + Command.encode(command));
-				serverRecieveText.revalidate();
+				serverRecieveText.setCaretPosition(serverRecieveText.getDocument().getLength());
 				try {
 					switch(CommandType.get(command.context, ClientToServer.values())) {
 					case ClientToServer.CHAT:
@@ -134,6 +146,7 @@ public class Server extends JFrame{
 						user.setUserName(command.body);
 						revalidateUsers();
 						communication.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "User "+oldUserName+" changed their username to " + user.userName)));
+						communication.send(new Command(ServerToClient.YOUR_USERNAME, user.userName), user);
 						break caseBlock;
 					}
 					case ClientToServer.GET_USERS:
@@ -182,6 +195,7 @@ public class Server extends JFrame{
 			@Override
 			public void onMessage(String target, Command command) {
 				serverSendText.append("\n"+target + ": "+Command.encode(command));
+				serverSendText.setCaretPosition(serverSendText.getDocument().getLength());
 			}
 		});
 
@@ -197,6 +211,8 @@ public class Server extends JFrame{
 				userText.setEditable(false);
 				namesPanel.add(userText);
 			}
+			JScrollBar namesScrollBar = namesScrollPane.getVerticalScrollBar();
+			namesScrollBar.setValue(namesScrollBar.getMaximum());
 			revalidate();
 		}
 	}

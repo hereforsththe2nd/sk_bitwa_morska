@@ -25,6 +25,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JWindow;
 import javax.swing.SwingUtilities;
+import javax.swing.text.DefaultCaret;
 
 import client.ClientConnectionManager.AutoStopMessageListener;
 import client.ClientConnectionManager.ConnectionListener;
@@ -43,6 +44,7 @@ public class Client extends JFrame{
 	Socket socket;
 	private JPanel leftToolbar;
 	final JFrame frame = this;
+	private String userName = null;
 	private JDialog showUsersPopUp;
 	ClientConnectionManager conn = ClientConnectionManager.DISCONNECTED;
 	private JLabel errors = new JLabel();
@@ -54,7 +56,7 @@ public class Client extends JFrame{
 		
 		setSize(700,500);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
+		setTitle("Disconnected");
 		
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
@@ -103,6 +105,7 @@ public class Client extends JFrame{
 					button.setText("Connect");
 					hostText.setEnabled(true);
 					portText.setEnabled(true);
+					frame.setTitle("Disconnected");
 					game.exec(ClientGame.END_GAME);
 					return;
 				}
@@ -127,6 +130,10 @@ public class Client extends JFrame{
 								dialog.setVisible(true);
 								game.startGame();
 								break;
+							case ServerToClient.YOUR_USERNAME:
+								userName = com.body;
+								frame.setTitle(userName);
+								break;
 							case ServerToClient.ERROR_PANE:
 								JOptionPane.showMessageDialog(frame, com.body, "", JOptionPane.ERROR_MESSAGE);
 								break;
@@ -137,6 +144,7 @@ public class Client extends JFrame{
 							}
 						}
 					});
+					frame.setTitle(userName);
 					button.setText("Disconnect");
 					hostText.setEnabled(false);
 					portText.setEnabled(false);
@@ -148,6 +156,8 @@ public class Client extends JFrame{
 		});
 
 		chat = new Chat();
+		DefaultCaret chatCaret = (DefaultCaret) chat.getCaret();
+		chatCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
 		chat.setDisabledTextColor(Color.BLACK);
 		chat.setEnabled(false);
 		JScrollPane chatScroll = new  JScrollPane(chat);
