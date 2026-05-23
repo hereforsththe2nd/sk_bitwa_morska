@@ -27,8 +27,8 @@ interface OutSendListener{
 	void onMessage(String target, Command command);
 }
 
-public class ConnectionManager {
-	private ConnectionManager server = this;
+public class ServerConnectionManager {
+	private ServerConnectionManager server = this;
 	private ServerSocket serverSocket; 
 	private Thread newConnections;
 	private LinkedList<User> users = new LinkedList<User>();
@@ -38,7 +38,7 @@ public class ConnectionManager {
 	private final LinkedList<ClientToServerMessageListener> mesListeners = new LinkedList<ClientToServerMessageListener>();
 	private final LinkedList<OutSendListener> outListeners = new LinkedList<OutSendListener>();
 	
-	public ConnectionManager(int port) throws IOException {
+	public ServerConnectionManager(int port) throws IOException {
 		serverSocket = new ServerSocket(port);
 		newConnections = new Thread(new Runnable() {
 			@Override
@@ -79,7 +79,12 @@ public class ConnectionManager {
 							continue;
 						}
 						Command com = Command.decode(line);
-						for(ClientToServerMessageListener messageListener : mesListeners)	messageListener.onMessage(com, user);
+						for(ClientToServerMessageListener messageListener : mesListeners)
+							try{
+								messageListener.onMessage(com, user);
+							}catch (Exception e) {
+								e.printStackTrace();
+							}
 					} catch (IOException e) {
 						System.err.println("User disconnected " + user.ID);
 						user.connected = false;
@@ -107,7 +112,7 @@ public class ConnectionManager {
 		writer.flush();
 	}
 	
-	protected void send(Command com, User user) throws IOException {
+	public void send(Command com, User user) throws IOException {
 		sendWT(com, user);
 		for(OutSendListener listener : outListeners) listener.onMessage(user.userName + ", ID: "+user.ID, com);
 	}
@@ -134,6 +139,10 @@ public class ConnectionManager {
 	
 	protected void addMessageListener(ClientToServerMessageListener listener) {
 		mesListeners.add(listener);
+	}
+	
+	protected void removeMessageListener(ClientToServerMessageListener listener) {
+		mesListeners.remove(listener);
 	}
 	
 	protected void addSendListener(OutSendListener listener) {

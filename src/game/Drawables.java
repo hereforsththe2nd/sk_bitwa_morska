@@ -18,8 +18,6 @@ final class Drawables {
 			else g2d.setColor(color2);
 			//g2d.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 			//double x1=bounds.x, y1=bounds.y+0.5, x2=(bounds.x+bounds.width),y2=(bounds.y+bounds.height)+0.5;
-			System.out.println("Tile " + r + " drawn");
-			System.out.println("Bounds = "+bounds);
 			g2d.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 			g2d.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
 			g2d.setColor(Color.BLACK);

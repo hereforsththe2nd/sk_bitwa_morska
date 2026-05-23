@@ -13,7 +13,7 @@ import communication.Command;
 import communication.ServerToClient;
 
 
-public class ConnectionClient {
+public class ClientConnectionManager {
 	static public interface ConnectionListener{
 		void onMessage(Command com);
 	}
@@ -26,11 +26,11 @@ public class ConnectionClient {
 	final Socket socket;
 	final BufferedWriter writer;
 	final BufferedReader reader;
-	final LinkedList<ConnectionListener> listeners = new LinkedList<ConnectionListener>();
+	final private LinkedList<ConnectionListener> listeners = new LinkedList<ConnectionListener>();
 	final LinkedList<AutoStopMessageListener> autoStopListeners = new LinkedList<AutoStopMessageListener>();
 	boolean connected = true;
 
-	protected ConnectionClient(Socket socket) throws UnknownHostException, IOException {
+	protected ClientConnectionManager(Socket socket) throws UnknownHostException, IOException {
 			this.socket = socket;
 			writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
@@ -48,7 +48,7 @@ public class ConnectionClient {
 							}
 							com = Command.decode(line);
 							synchronized(Locks.ADD_LISTENER) {
-								for(ConnectionListener listener : listeners) listener.onMessage(com);
+								for(ConnectionListener listener : (LinkedList<ConnectionListener>)listeners.clone()) listener.onMessage(com);
 								for(AutoStopMessageListener listener : (LinkedList<AutoStopMessageListener>)autoStopListeners.clone()) {
 									listener.onMessage(com);
 									if(com.context.equals(listener.getContext().getLabel())) autoStopListeners.remove(listener);
@@ -81,6 +81,18 @@ public class ConnectionClient {
 	public void addMessageListener(ConnectionListener listener) {
 		synchronized(Locks.ADD_LISTENER) {
 			listeners.add(listener);
+		}
+	}
+	
+	public void removeMessageListener(ConnectionListener listener) {
+		synchronized(Locks.ADD_LISTENER) {
+			listeners.remove(listener);
+		}
+	}
+	
+	public void addAutoStopMessageListener(AutoStopMessageListener listener) {
+ 		synchronized (Locks.ADD_LISTENER) {
+			autoStopListeners.add(listener);
 		}
 	}
 	

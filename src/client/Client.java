@@ -26,14 +26,13 @@ import javax.swing.JTextField;
 import javax.swing.JWindow;
 import javax.swing.SwingUtilities;
 
-import client.ConnectionClient.AutoStopMessageListener;
-import client.ConnectionClient.ConnectionListener;
+import client.ClientConnectionManager.AutoStopMessageListener;
+import client.ClientConnectionManager.ConnectionListener;
 import communication.ClientToServer;
 import communication.Command;
 import communication.CommandType;
 import communication.GameClientToServer;
 import communication.ServerToClient;
-import game.GameClient;
 
 public class Client extends JFrame{
 	/**
@@ -45,11 +44,11 @@ public class Client extends JFrame{
 	private JPanel leftToolbar;
 	final JFrame frame = this;
 	private JDialog showUsersPopUp;
-	ConnectionClient conn;
+	ClientConnectionManager conn;
 	private JLabel errors = new JLabel();
 	Chat chat;
 	
-	GameClient game = null;
+	final ClientGame game = new ClientGame(400, 400);
 	
 	public Client() throws UnknownHostException, IOException {		
 		
@@ -60,6 +59,8 @@ public class Client extends JFrame{
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
 		add(panel);
+		
+		panel.add(game, BorderLayout.CENTER);
 		
 		JPanel left = new JPanel();
 		left.setLayout(new BorderLayout());
@@ -123,7 +124,8 @@ public class Client extends JFrame{
 						conn.close();
 					}
 					socket = new Socket(hostText.getText(), Integer.parseInt(portText.getText()));
-					conn = new ConnectionClient(socket);
+					conn = new ClientConnectionManager(socket);
+					game.setConnection(conn);
 					conn.addMessageListener(new ConnectionListener() {
 
 						@Override
@@ -139,6 +141,7 @@ public class Client extends JFrame{
 								dialog.setModalityType(JDialog.ModalityType.MODELESS);
 								dialog.setLocation(frame.getX()+frame.getWidth()/2-dialog.getWidth()/2, frame.getY()+frame.getHeight()/2-dialog.getHeight()/2);
 								dialog.setVisible(true);
+								game.startGame();
 								break;
 							case ServerToClient.ERROR_PANE:
 								JOptionPane.showMessageDialog(frame, com.body, "", JOptionPane.ERROR_MESSAGE);

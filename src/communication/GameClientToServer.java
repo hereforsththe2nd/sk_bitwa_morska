@@ -1,6 +1,7 @@
 package communication;
 
 public enum GameClientToServer implements CommandType{
+	TEMP_PLEASELETMEWIN("ff"),
 	SET_SHIP("SET_SHIP"),
 	;
 

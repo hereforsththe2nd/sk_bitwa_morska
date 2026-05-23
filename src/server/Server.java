@@ -24,7 +24,6 @@ import communication.CommandType;
 import communication.GameClientToServer;
 import communication.ServerToClient;
 import communication.User;
-import game.ServerGame;
 
 public class Server extends JFrame{
 
@@ -35,8 +34,7 @@ public class Server extends JFrame{
 
 	JPanel namesPanel;
 	JScrollPane namesScrollPane;
-	ConnectionManager communication;
-	private final LinkedList<ServerGame> games = new LinkedList<ServerGame>();
+	ServerConnectionManager communication;
 	
 	public Server() throws IOException {
 		super();
@@ -50,7 +48,7 @@ public class Server extends JFrame{
 		});
 		setLayout(new FlowLayout());
 		
-		communication = new ConnectionManager(8000);
+		communication = new ServerConnectionManager(8000);
 		communication.setConnectionListener( new ConnectionListener() {			
 			@Override
 			public void onConnection(Socket socket, User user) {
@@ -141,20 +139,27 @@ public class Server extends JFrame{
 						User tryingToInvite = communication.getUser(command.body);
 						if(tryingToInvite == null)
 							communication.send(new Command(ServerToClient.ERROR_PANE, "User with the user name " + command.body + " does not exist."), user);
-						else for(ServerGame game : games) {
-								if(game.users[0] == user || game.users[1] == user) {
+						else for(ServerGame game : ServerGame.games) {
+								if(game.isPlaying(user)) {
 									communication.send(new Command(ServerToClient.ERROR_PANE, "Już jesteś w grze!"), user);
 									break caseBlock;
 								}
-								if(game.users[0] == tryingToInvite || game.users[1] == tryingToInvite) {
+								if(game.isPlaying(tryingToInvite)) {
 									communication.send(new Command(ServerToClient.ERROR_PANE, "Użytkownik " + tryingToInvite.userName + " is already in a game."), user);
 									break caseBlock;
 								}
 							}
-						games.add(new ServerGame(user, tryingToInvite));
+						ServerGame.games.add(new ServerGame(user, tryingToInvite,communication ));
 						communication.send(new Command(ServerToClient.START_GAME, "Zacząłeś grę z graczem " + tryingToInvite.userName), user);
 						communication.send(new Command(ServerToClient.START_GAME, "Gracz " + user.userName + " zaczął z tobą grę."), tryingToInvite);
 					}
+						break;
+					case ClientToServer.GAME:
+						for(ServerGame game : ServerGame.games)
+							if(game.isPlaying(user)) {
+								game.exec(Command.decode(command.body), user);
+								break;
+							}
 						break;
 					default:
 					}

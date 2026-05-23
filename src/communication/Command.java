@@ -46,4 +46,8 @@ public class Command {
 	public static String encode(CommandType type, String body) {
 		return Command.encode(new Command(type.getLabel(), body));
 	}
+	
+	public boolean isContext(CommandType context) {
+		return this.context.equals(context.getLabel());
+	}
 }
