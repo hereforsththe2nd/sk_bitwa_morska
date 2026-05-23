@@ -36,6 +36,8 @@ public class ClientGame extends JPanel{
 	Board yourBoard;
 	Board oppBoard;
 	
+	static final Command END_GAME = new Command("END_THE_GAME", "");
+	
 	ConnectionListener listener;
 	
 	private ClientConnectionManager conn;
@@ -102,29 +104,30 @@ public class ClientGame extends JPanel{
 		setVisible(true);
 	}
 	
-	private void exec(Command serverCom) {
+	protected void exec(Command comm) {
+		if(comm == END_GAME) {
+			endGame();
+			return;
+		}
 		JOptionPane pane;
 		JDialog dialog;
-		Container parent =  getParent();
 		Point location = getLocationOnScreen();
-		switch(CommandType.get(serverCom.context, GameServerToClient.values())) {
+		switch(CommandType.get(comm.context, GameServerToClient.values())) {
 		case GameServerToClient.YOU_LOST:
-			pane = new JOptionPane("Przegrałeś " + serverCom.body, JOptionPane.INFORMATION_MESSAGE);
+			pane = new JOptionPane("Przegrałeś " + comm.body, JOptionPane.INFORMATION_MESSAGE);
 			dialog = pane.createDialog(this, "Koniec gry");
 			dialog.setLocation(location.x+getWidth()/2-dialog.getWidth()/2, location.y+getHeight()/2-dialog.getHeight()/2);
 			dialog.setModalityType(JDialog.ModalityType.MODELESS);
 			dialog.setVisible(true);
-			gameOngoing=false;
-			setVisible(false);
+			endGame();
 			break;
 		case GameServerToClient.YOU_WON:
-			pane = new JOptionPane("Wygrałeś "  +serverCom.body, JOptionPane.INFORMATION_MESSAGE);
+			pane = new JOptionPane("Wygrałeś "  +comm.body, JOptionPane.INFORMATION_MESSAGE);
 			dialog = pane.createDialog(this, "Koniec gry");
 			dialog.setLocation(location.x+getWidth()/2-dialog.getWidth()/2, location.y+getHeight()/2-dialog.getHeight()/2);
 			dialog.setModalityType(JDialog.ModalityType.MODELESS);
 			dialog.setVisible(true);
-			gameOngoing = false;
-			setVisible(false);
+			endGame();
 			break;
 		default:
 			break;
@@ -132,6 +135,10 @@ public class ClientGame extends JPanel{
 
 	}
 	
+	private void endGame() {
+		gameOngoing = false;
+		setVisible(false);
+	}
 	
 	protected void send(Command comm) throws IOException {
 		conn.send(new Command(ClientToServer.GAME, Command.encode(comm)));

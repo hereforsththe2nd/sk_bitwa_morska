@@ -44,7 +44,7 @@ public class Client extends JFrame{
 	private JPanel leftToolbar;
 	final JFrame frame = this;
 	private JDialog showUsersPopUp;
-	ClientConnectionManager conn;
+	ClientConnectionManager conn = ClientConnectionManager.DISCONNECTED;
 	private JLabel errors = new JLabel();
 	Chat chat;
 	
@@ -94,35 +94,19 @@ public class Client extends JFrame{
 		JButton button = new JButton("Connect");
 		leftToolbar.add(button);
 		
-		chat = new Chat();
-		chat.setDisabledTextColor(Color.BLACK);
-		chat.setEnabled(false);
-		JScrollPane chatScroll = new  JScrollPane(chat);
-		left.add(chatScroll, BorderLayout.CENTER);
-		JTextField chatSend = new JTextField();
-		chatSend.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				try {
-					conn.send(new Command(ClientToServer.CHAT, chatSend.getText()));
-					chatSend.setText("");
-				} catch (IOException e1) {
-					errors.setText(e1.getLocalizedMessage());
-				}
-			}
-		});
-		left.add(chatSend, BorderLayout.SOUTH);
-		
-		doTheMenu();
-		
 		button.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				if(conn != ClientConnectionManager.DISCONNECTED) {
+					conn.close();
+					conn = ClientConnectionManager.DISCONNECTED;
+					button.setText("Connect");
+					hostText.setEnabled(true);
+					portText.setEnabled(true);
+					game.exec(ClientGame.END_GAME);
+					return;
+				}
 				try {
-					if(conn != null) {
-						conn.close();
-					}
 					socket = new Socket(hostText.getText(), Integer.parseInt(portText.getText()));
 					conn = new ClientConnectionManager(socket);
 					game.setConnection(conn);
@@ -151,18 +135,40 @@ public class Client extends JFrame{
 								break;
 							
 							}
-							if(com.context.equals(ServerToClient.CHAT.getLabel())) {
-							}
 						}
 					});
-
-					
+					button.setText("Disconnect");
+					hostText.setEnabled(false);
+					portText.setEnabled(false);
 				} catch (IOException e1) {
 					errors.setText(e1.getLocalizedMessage());
 					errors.revalidate();
 				}
 			}
 		});
+
+		chat = new Chat();
+		chat.setDisabledTextColor(Color.BLACK);
+		chat.setEnabled(false);
+		JScrollPane chatScroll = new  JScrollPane(chat);
+		left.add(chatScroll, BorderLayout.CENTER);
+		JTextField chatSend = new JTextField();
+		chatSend.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				try {
+					conn.send(new Command(ClientToServer.CHAT, chatSend.getText()));
+					chatSend.setText("");
+				} catch (IOException e1) {
+					errors.setText(e1.getLocalizedMessage());
+				}
+			}
+		});
+		left.add(chatSend, BorderLayout.SOUTH);
+		
+		doTheMenu();
+		
 	}
 	
 	private void doTheMenu() {
@@ -216,7 +222,7 @@ public class Client extends JFrame{
 									showUsersPopUp.add(showUsersPanel);
 									showUsersPanel.setLayout(new BoxLayout(showUsersPanel, BoxLayout.Y_AXIS));
 
-									if(com.context.equals(ServerToClient.USERLIST.getLabel())) {
+									if(com.isContext(ServerToClient.USERLIST)) {
 										String[] userNames = com.body.split("\\|");
 										JPanel panel = new JPanel();
 										panel.add(new JLabel(userNames[0]));

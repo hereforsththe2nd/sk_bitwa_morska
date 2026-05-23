@@ -53,6 +53,7 @@ public class Server extends JFrame{
 			@Override
 			public void onConnection(Socket socket, User user) {
 				try {
+					communication.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "Użytkownik " + user.userName + " połączył się z serwerem.")));
 					communication.send(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "Udało połączyć się ze serwerem.")), user);
 				} catch (IOException e) {
 					e.printStackTrace();
@@ -62,6 +63,14 @@ public class Server extends JFrame{
 
 			@Override
 			public void onDisconnect(Socket socket, User user) {
+				try {
+					communication.sendAll(new Command(ServerToClient.CHAT, Command.encode(ChatList.SERVER, "Użytkownik " + user.userName + " rozłączył się ze serwerem.")));
+					for(ServerGame game : ServerGame.games) {
+						game.disconeccted(user);
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 				revalidateUsers();
 			}
 		});

@@ -49,6 +49,7 @@ public class Grid extends JPanel {
 	private final int N1, N2;
 	private int tileWidth, tileHeight, widthRest, heightRest;
 	private final ArrayList<Layer> layers = new ArrayList<Grid.Layer>();	
+	private BufferedImage screenBuffer;
 	
 	public Grid(final int N1, final int N2, final int layers) {
 		this.N1=N1;
@@ -66,8 +67,10 @@ public class Grid extends JPanel {
 	@Override
 	public void setSize(int width, int height) {
 		for(Layer l : layers)
-			if(width >= 0 && height > 0 && ((l.getImg()==null) || (width<l.getImg().getWidth()/3 && height<l.getImg().getHeight()/3)  || (width>l.getImg().getWidth() || height>l.getImg().getHeight())))
+			if(width > 0 && height > 0 && ((l.getImg()==null) || (width<l.getImg().getWidth()/3 && height<l.getImg().getHeight()/3)  || (width>l.getImg().getWidth() || height>l.getImg().getHeight())))
 				l.setImg(new BufferedImage((int) (width*1.25), (int)(height*1.25), BufferedImage.TYPE_INT_ARGB));
+		if(width > 0 && height > 0 && ((screenBuffer==null) || (width<screenBuffer.getWidth()/3 && height<screenBuffer.getHeight()/3)  || (width>screenBuffer.getWidth() || height>screenBuffer.getHeight())))
+			screenBuffer = new BufferedImage((int) (width*1.25), (int)(height*1.25), BufferedImage.TYPE_INT_ARGB);
 		for(Layer l : layers)
 			l.setRepaint(true);
 		
@@ -124,14 +127,13 @@ public class Grid extends JPanel {
 	final protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		Graphics2D g2d = (Graphics2D)g;
-		/*g2d.setRenderingHint(
-			    RenderingHints.KEY_INTERPOLATION,
+		Graphics2D bufferg2d = screenBuffer.createGraphics();
+		g2d.setRenderingHint(
+			    RenderingHints.KEY_INTERPOLATION ,
 			    RenderingHints.VALUE_INTERPOLATION_BICUBIC
-			);*/
+			);
 		for(Layer l : layers) {
 			if(l.isRepaint()) {
-				if(l.layer == 0)
-					System.out.println("tiles drawn");
 				Graphics2D lg2d = l.getImg().createGraphics();
 				lg2d.setBackground(new Color(255,0,0,0));
 				lg2d.clearRect(0, 0, getWidth(), getHeight());
@@ -144,11 +146,10 @@ public class Grid extends JPanel {
 				l.setRepaint(false);
 				lg2d.dispose();
 			}
-			g2d.drawImage(l.getImg(), 0, 0, null);
+			bufferg2d.drawImage(l.getImg(), 0, 0, null);
 		}
-		//g2d.drawImage(imgBuff, 0, 0, 500, 500, 0, 0, 500, 500, null);
-		//g2d.drawImage(imgBuff, 0, 0, 100, 100, null);
-		//repaintSquares.removeAll(repaintSquares);
+		g2d.drawImage(screenBuffer, 0, 0, null);
+		bufferg2d.dispose();
 		g2d.dispose();
 	}
 	

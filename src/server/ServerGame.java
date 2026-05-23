@@ -50,4 +50,15 @@ public class ServerGame {
 			throw new IllegalArgumentException("Użytkownik "+user+" nie jest graczem w tej grze.");
 		return users.get((i+1)%2);
 	}
+
+	protected void disconeccted(User user) {
+		if(!users.contains(user))
+			return;
+		games.remove(this);
+		try {
+			send(new Command(GameServerToClient.YOU_WON, " opponent disconnected"), otherUser(user));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
 }

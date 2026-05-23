@@ -9,6 +9,8 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
 
+import javax.swing.JOptionPane;
+
 import communication.Command;
 import communication.ServerToClient;
 
@@ -22,7 +24,6 @@ public class ClientConnectionManager {
 	static public interface AutoStopMessageListener extends ConnectionListener{
 		ServerToClient getContext();
 	}
-	
 	final Socket socket;
 	final BufferedWriter writer;
 	final BufferedReader reader;
@@ -51,7 +52,7 @@ public class ClientConnectionManager {
 								for(ConnectionListener listener : (LinkedList<ConnectionListener>)listeners.clone()) listener.onMessage(com);
 								for(AutoStopMessageListener listener : (LinkedList<AutoStopMessageListener>)autoStopListeners.clone()) {
 									listener.onMessage(com);
-									if(com.context.equals(listener.getContext().getLabel())) autoStopListeners.remove(listener);
+									if(com.isContext(listener.getContext())) autoStopListeners.remove(listener);
 								}
 							}
 						} catch (IOException e) {
@@ -109,4 +110,39 @@ public class ClientConnectionManager {
 		}
  		send(com);
  	}
+ 	
+ 	private ClientConnectionManager() {
+		this.socket = null;
+		this.writer = null;
+		this.reader = null;
+ 	}
+	static final ClientConnectionManager DISCONNECTED = new ClientConnectionManager() {
+		@Override
+		public void send(Command com) throws IOException {
+			JOptionPane.showMessageDialog(null, "Nie można wykonać czynności: brak połączenia z serwerem.", "Błąd(send)", JOptionPane.ERROR_MESSAGE);
+		}
+		@Override
+		public void sendAndAwait(Command com, AutoStopMessageListener listener) throws IOException {
+			JOptionPane.showMessageDialog(null, "Nie można wykonać czynności: brak połączenia z serwerem.", "Błąd (sendAndAwait)", JOptionPane.ERROR_MESSAGE);
+		}
+		@Override
+		public void addAutoStopMessageListener(AutoStopMessageListener listener) {
+			JOptionPane.showMessageDialog(null, "Nie można wykonać czynności: brak połączenia z serwerem.", "Błąd, (addAutoStopMessageListener)", JOptionPane.ERROR_MESSAGE);
+		}
+		@Override
+		public void addMessageListener(ConnectionListener listener) {
+			JOptionPane.showMessageDialog(null, "Nie można wykonać czynności: brak połączenia z serwerem.", "Błąd, (addMessageListener)", JOptionPane.ERROR_MESSAGE);
+		}
+		
+		@Override
+		protected void close() {
+			JOptionPane.showMessageDialog(null, "Nie można wykonać czynności: brak połączenia z serwerem.", "Błąd, (close)", JOptionPane.ERROR_MESSAGE);
+		}
+		
+		@Override
+		public void removeMessageListener(ConnectionListener listener) {
+			JOptionPane.showMessageDialog(null, "Nie można wykonać czynności: brak połączenia z serwerem.", "Błąd, (removeMessageListener)", JOptionPane.ERROR_MESSAGE);
+		}
+	};
+
 }
