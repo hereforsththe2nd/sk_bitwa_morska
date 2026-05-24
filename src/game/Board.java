@@ -71,6 +71,8 @@ public class Board extends JPanel {
                 mouseMoved(e);
 
                 if (dragged != null) {
+                	removeShip(dragged);
+                	refreshGridShips();
                     if (isDock && companionBoard != null) {
               
                         Point pMain = SwingUtilities.convertPoint(grid, e.getPoint(), companionBoard.grid);
@@ -79,18 +81,18 @@ public class Board extends JPanel {
                         if (posMain != null) {
                     
                             if (!companionBoard.ships.contains(dragged)) {
-                                ships.remove(dragged);
+                                removeShip(dragged);
                                 refreshGridShips();
-                                companionBoard.ships.add(dragged);
+                                companionBoard.addShip(dragged);
                             }
                             dragged.pos = posMain;
                             companionBoard.refreshGridShips();
                         } else {
               
                             if (!ships.contains(dragged)) {
-                                companionBoard.ships.remove(dragged);
+                                companionBoard.removeShip(dragged);
                                 companionBoard.refreshGridShips();
-                                ships.add(dragged);
+                                addShip(dragged);
                             }
                             Position pDock = grid.getCoords(e.getX(), e.getY());
                             if (pDock != null) {
@@ -126,9 +128,9 @@ public class Board extends JPanel {
                     
                             if (!companionBoard.valid(dragged)) {
                       
-                                companionBoard.ships.remove(dragged);
+                                companionBoard.removeShip(dragged);;
                                 companionBoard.refreshGridShips();
-                                ships.add(dragged);
+                                addShip(dragged);
                                 layoutShipsInDock();
                             }
                         } else {
@@ -138,9 +140,9 @@ public class Board extends JPanel {
                     } else if (!isDock && companionBoard != null) {
                     
                         if (!valid(dragged)) {
-                            ships.remove(dragged);
+                            removeShip(dragged);
                             refreshGridShips();
-                            companionBoard.ships.add(dragged);
+                            companionBoard.addShip(dragged);
                             companionBoard.layoutShipsInDock();
                         }
                     }
@@ -240,15 +242,16 @@ public class Board extends JPanel {
     }
     
 
-    public void setCompanionBoard(Board board) { this.companionBoard = board; }
+    public void setCompanionBoard(Board board) {
+    	if(this.isDock == board.isDock)
+    		throw new IllegalArgumentException("...");
+    	this.companionBoard = board; 
+    }
     public void setDock(boolean isDock) { this.isDock = isDock; }
     public void setPlacing(boolean placing) { this.placing = placing; }
     public java.util.List<Ship> getShips() { return this.ships; }
 
     public void refreshGridShips() {
-        for (Ship s : ships) {
-            grid.addDrawable(s, SHIP);
-        }
         grid.addRepaintRequest(SHIP);
         grid.repaint();
     }
@@ -269,7 +272,7 @@ public class Board extends JPanel {
 
         for (int len : config) {
             Ship s = new Ship(len);
-            ships.add(s);
+            addShip(s);
         }
         
         layoutShipsInDock();
@@ -298,5 +301,15 @@ public class Board extends JPanel {
             }
         }
         return true;
+    }
+    
+    private void addShip(Ship s) {
+    	ships.add(s);
+    	grid.addDrawable(s, SHIP);
+    }
+    
+    private void removeShip(Ship s) {
+    	ships.remove(s);
+    	grid.removeDrawable(s, SHIP);
     }
 }

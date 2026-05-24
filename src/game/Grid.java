@@ -119,6 +119,10 @@ public class Grid extends JPanel {
 		draw.add(d);
 	}
 	
+	public void removeDrawable(Drawable d, int layer) {
+		layers.get(layer).remove(d);
+	}
+	
 	public void addRepaintRequest(int layer) {
 		layers.get(layer).setRepaint(true);
 	}
@@ -173,6 +177,10 @@ public class Grid extends JPanel {
 			this.layer=layer;
 		}
 		
+		public void remove(Drawable d) {
+			draw.remove(d);
+		}
+
 		public BufferedImage getImg() {
 			return img;
 		}
@@ -197,6 +205,5 @@ public class Grid extends JPanel {
 		}
 		
 	}
-
 	
 }
