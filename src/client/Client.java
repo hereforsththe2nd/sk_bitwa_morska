@@ -49,8 +49,7 @@ public class Client extends JFrame{
 	ClientConnectionManager conn = ClientConnectionManager.DISCONNECTED;
 	private JLabel errors = new JLabel();
 	Chat chat;
-	
-	final ClientGame game = new ClientGame(400, 400);
+	private ClientGame game;
 	
 	public Client() throws UnknownHostException, IOException {		
 		
@@ -61,9 +60,7 @@ public class Client extends JFrame{
 		JPanel panel = new JPanel();
 		panel.setLayout(new BorderLayout());
 		add(panel);
-		
-		panel.add(game, BorderLayout.CENTER);
-		
+				
 		JPanel left = new JPanel();
 		left.setLayout(new BorderLayout());
 		leftToolbar = new JPanel();
@@ -112,7 +109,6 @@ public class Client extends JFrame{
 				try {
 					socket = new Socket(hostText.getText(), Integer.parseInt(portText.getText()));
 					conn = new ClientConnectionManager(socket);
-					game.setConnection(conn);
 					conn.addMessageListener(new ConnectionListener() {
 
 						@Override
@@ -128,6 +124,9 @@ public class Client extends JFrame{
 								dialog.setModalityType(JDialog.ModalityType.MODELESS);
 								dialog.setLocation(frame.getX()+frame.getWidth()/2-dialog.getWidth()/2, frame.getY()+frame.getHeight()/2-dialog.getHeight()/2);
 								dialog.setVisible(true);
+								game = new ClientGame(400, 400);
+								game.setConnection(conn);
+								panel.add(game, BorderLayout.CENTER);
 								game.startGame();
 								break;
 							case ServerToClient.YOUR_USERNAME:
@@ -262,8 +261,8 @@ public class Client extends JFrame{
 								}
 								
 								@Override
-								public ServerToClient getContext() {
-									return ServerToClient.USERLIST;
+								public boolean stop(Command message) {
+									return message.isContext(ServerToClient.USERLIST);
 								}
 							});
 						} catch (IOException e1) {

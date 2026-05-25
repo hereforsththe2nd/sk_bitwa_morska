@@ -22,7 +22,7 @@ public class ClientConnectionManager {
 	
 	
 	static public interface AutoStopMessageListener extends ConnectionListener{
-		ServerToClient getContext();
+		boolean stop(Command message);
 	}
 	final Socket socket;
 	final BufferedWriter writer;
@@ -52,7 +52,7 @@ public class ClientConnectionManager {
 								for(ConnectionListener listener : (LinkedList<ConnectionListener>)listeners.clone()) listener.onMessage(com);
 								for(AutoStopMessageListener listener : (LinkedList<AutoStopMessageListener>)autoStopListeners.clone()) {
 									listener.onMessage(com);
-									if(com.isContext(listener.getContext())) autoStopListeners.remove(listener);
+									if(listener.stop(com)) autoStopListeners.remove(listener);
 								}
 							}
 						} catch (IOException e) {
