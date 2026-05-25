@@ -24,7 +24,10 @@ import communication.GameClientToServer;
 import communication.GameServerToClient;
 import communication.ServerToClient;
 import game.Board;
+import game.DockBoard;
+import game.DockFunctionality;
 import game.Phase;
+import game.PlayerBoard;
 
 public class ClientGame extends JPanel {
     
@@ -32,9 +35,9 @@ public class ClientGame extends JPanel {
     private boolean gameOngoing = false;
     Phase phase;
     
-    Board yourBoard;
-    Board oppBoard;
-    Board dockBoard; 
+    PlayerBoard yourBoard;
+    PlayerBoard/*może po prostu board to powinien być, ale na razie zostawię*/ oppBoard;
+    DockBoard dockBoard; 
     JButton confirmPlacement;
     
     static final Command END_GAME = new Command("END_THE_GAME", "");
@@ -73,17 +76,14 @@ public class ClientGame extends JPanel {
         left.add(new JLabel("Ty"));
         right.add(new JLabel("Przeciwnik"));
         
-        yourBoard = new Board(width, height);
-        oppBoard = new Board(width, height);
+        yourBoard = new PlayerBoard(width, height);
+        oppBoard = new PlayerBoard(width, height);
         
      
-        dockBoard = new Board(width, (int)(height * 0.6));
-        dockBoard.setDock(true);
+        dockBoard = new DockBoard(width, (int)(height * 0.6));
         
+        DockFunctionality dockF = new DockFunctionality(yourBoard, dockBoard);
   
-        yourBoard.setCompanionBoard(dockBoard);
-        dockBoard.setCompanionBoard(yourBoard);
-        
         left.add(yourBoard);
         right.add(oppBoard);
         
@@ -103,8 +103,6 @@ public class ClientGame extends JPanel {
                 return;
             }
             
-            yourBoard.setPlacing(false);
-            dockBoard.setPlacing(false);
             dockBoard.setVisible(false);
             confirmPlacement.setVisible(false);
             
@@ -117,7 +115,6 @@ public class ClientGame extends JPanel {
         placeShips.addActionListener(e -> {
             yourBoard.getShips().clear();
             yourBoard.refreshGridShips();
-            yourBoard.setPlacing(true);
             
             dockBoard.startShipPlacement();
             dockBoard.setVisible(true);

@@ -10,6 +10,7 @@ import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -34,14 +35,8 @@ public class Board extends JPanel {
     Position mousePosition = null;
     LinkedList<Position> selected = new LinkedList<Position>();
     
-    private Grid grid;
-    private java.util.List<Ship> ships = new java.util.ArrayList<>();
-    private Ship dragged = null;
-    private boolean placing = false;
-    
-
-    private Board companionBoard = null;
-    private boolean isDock = false;
+    Grid grid;
+    java.util.List<Ship> ships = new java.util.ArrayList<>();
     
     private static final long serialVersionUID = -6889931911537334441L;
     
@@ -56,65 +51,23 @@ public class Board extends JPanel {
         grid.setMaximumSize(new Dimension(width, height));
         grid.setPreferredSize(new Dimension(width, height));
         
-        grid.addMouseMotionListener(new MouseMotionListener() {
+        grid.addMouseMotionListener(new MouseMotionAdapter() {
             
             @Override
             public void mouseMoved(MouseEvent e) {
+            	super.mouseMoved(e);
                 mousePosition = grid.getCoords(e.getX(), e.getY());
                 hover.setPosition(mousePosition);
                 grid.addRepaintRequest(HOVER);
                 grid.repaint();
             }
             
-            @Override
-            public void mouseDragged(MouseEvent e) {
-                mouseMoved(e);
-
-                if (dragged != null) {
-                	removeShip(dragged);
-                	refreshGridShips();
-                    if (isDock && companionBoard != null) {
-              
-                        Point pMain = SwingUtilities.convertPoint(grid, e.getPoint(), companionBoard.grid);
-                        Position posMain = companionBoard.grid.getCoords(pMain.x, pMain.y);
-                        
-                        if (posMain != null) {
-                    
-                            if (!companionBoard.ships.contains(dragged)) {
-                                removeShip(dragged);
-                                refreshGridShips();
-                                companionBoard.addShip(dragged);
-                            }
-                            dragged.pos = posMain;
-                            companionBoard.refreshGridShips();
-                        } else {
-              
-                            if (!ships.contains(dragged)) {
-                                companionBoard.removeShip(dragged);
-                                companionBoard.refreshGridShips();
-                                addShip(dragged);
-                            }
-                            Position pDock = grid.getCoords(e.getX(), e.getY());
-                            if (pDock != null) {
-                                dragged.pos = pDock;
-                            }
-                            refreshGridShips();
-                        }
-                    } else if (!isDock) {
-                    
-                        Position p = grid.getCoords(e.getX(), e.getY());
-                        if (p != null) {
-                            dragged.pos = p;
-                            refreshGridShips();
-                        }
-                    }
-                }
-            }
         });
         
         grid.addMouseListener(new MouseAdapter() {            
             @Override
             public void mouseExited(MouseEvent e) {
+            	super.mouseExited(e);
                 hover.setPosition(null);
                 grid.addRepaintRequest(HOVER);
                 grid.repaint();
@@ -122,81 +75,9 @@ public class Board extends JPanel {
             
             @Override
             public void mouseReleased(MouseEvent e) {
-                if (dragged != null) {
-                    if (isDock && companionBoard != null) {
-                        if (companionBoard.ships.contains(dragged)) {
-                    
-                            if (!companionBoard.valid(dragged)) {
-                      
-                                companionBoard.removeShip(dragged);;
-                                companionBoard.refreshGridShips();
-                                addShip(dragged);
-                                layoutShipsInDock();
-                            }
-                        } else {
-                   
-                            layoutShipsInDock();
-                        }
-                    } else if (!isDock && companionBoard != null) {
-                    
-                        if (!valid(dragged)) {
-                            removeShip(dragged);
-                            refreshGridShips();
-                            companionBoard.addShip(dragged);
-                            companionBoard.layoutShipsInDock();
-                        }
-                    }
-                    dragged = null;
-                }
+            	super.mouseReleased(e);
                 selected.clear();
                 grid.repaint();
-                if (companionBoard != null) {
-                    companionBoard.grid.repaint();
-                }
-            }
-            
-            @Override
-            public void mousePressed(MouseEvent e) {
-     
-                Position p = grid.getCoords(e.getX(), e.getY());
-                if (p == null) return;
-
-
-                if (SwingUtilities.isRightMouseButton(e)) {
-                    for (Ship s : ships) {
-                        if (s.occupies(p)) {
-                            s.rotate();
-                            if (!isDock) {
-                            
-                                if (!valid(s)) {
-                                    s.rotate(); 
-                                } else {
-                                    refreshGridShips();
-                                }
-                            } else {
-                             
-                                boolean boundsOk = true;
-                                for (int i = 0; i < s.length; i++) {
-                                    int x = s.pos.x + (s.horizontal ? i : 0);
-                                    int y = s.pos.y + (s.horizontal ? 0 : i);
-                                    if (x < 0 || y < 0 || x >= N || y >= N) boundsOk = false;
-                                }
-                                if (!boundsOk) s.rotate();
-                                layoutShipsInDock();
-                            }
-                            return;
-                        }
-                    }
-                    return;
-                }
-
-                // LEWY KLIK = CHWYTANIE
-                for (Ship s : ships) {
-                    if (s.occupies(p)) {
-                        dragged = s;
-                        return;
-                    }
-                }
             }
         });
         
@@ -242,44 +123,14 @@ public class Board extends JPanel {
     }
     
 
-    public void setCompanionBoard(Board board) {
-    	if(this.isDock == board.isDock)
-    		throw new IllegalArgumentException("...");
-    	this.companionBoard = board; 
-    }
-    public void setDock(boolean isDock) { this.isDock = isDock; }
-    public void setPlacing(boolean placing) { this.placing = placing; }
     public java.util.List<Ship> getShips() { return this.ships; }
 
     public void refreshGridShips() {
         grid.addRepaintRequest(SHIP);
         grid.repaint();
     }
-
-    public void layoutShipsInDock() {
     
-        for (int i = 0; i < ships.size(); i++) {
-            Ship s = ships.get(i);
-            s.pos = new Position(0, i);
-            s.horizontal = true;
-        }
-        refreshGridShips();
-    }
-
-    public void startShipPlacement() {
-        ships.clear();
-        int[] config = {5,4,4,3,3,2,2};
-
-        for (int len : config) {
-            Ship s = new Ship(len);
-            addShip(s);
-        }
-        
-        layoutShipsInDock();
-        placing = true;
-    }
-    
-    public boolean valid(Ship ship) {
+    public boolean isValid(Ship ship) {
         for (int i = 0; i < ship.length; i++) {
             int x = ship.pos.x + (ship.horizontal ? i : 0);
             int y = ship.pos.y + (ship.horizontal ? 0 : i);
@@ -303,12 +154,12 @@ public class Board extends JPanel {
         return true;
     }
     
-    private void addShip(Ship s) {
+    void addShip(Ship s) {
     	ships.add(s);
     	grid.addDrawable(s, SHIP);
     }
     
-    private void removeShip(Ship s) {
+    void removeShip(Ship s) {
     	ships.remove(s);
     	grid.removeDrawable(s, SHIP);
     }

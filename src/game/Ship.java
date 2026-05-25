@@ -10,6 +10,8 @@ public class Ship implements Drawable {
     public Position pos;
     public boolean horizontal = true;
 
+    private boolean valid = true;
+    
     public Ship(int length) {
         this.length = length;
     }
@@ -34,8 +36,11 @@ public class Ship implements Drawable {
     public void draw(Rectangle bounds, Graphics2D g2d) {
         if (pos == null) return;
 
-        g2d.setColor(new Color(0, 120, 255, 160));
-
+        if(valid)
+        	g2d.setColor(new Color(0, 120, 255, 160));
+        else
+        	g2d.setColor(Color.red);
+        
         for (int i = 0; i < length; i++) {
         	int cellW = bounds.width;
         	int cellH = bounds.height;
@@ -61,4 +66,8 @@ public class Ship implements Drawable {
     public Position getPosition() {
         return pos;
     }
+
+	public void setValid(boolean b) {
+		valid = b;
+	}
 }
