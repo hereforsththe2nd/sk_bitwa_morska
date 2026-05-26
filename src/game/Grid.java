@@ -89,26 +89,27 @@ public class Grid extends JPanel {
 	}
 	
 	private Rectangle getBounds(Position r) {
-		if(r.x==N1-1 && r.y==N2-1) 
+		int yBott = r.y;//N2-1-r.y;
+		if(r.x==N1-1 && yBott==N2-1) 
 			return new Rectangle(tileWidth*r.x,
-					tileHeight*r.y,
+					tileHeight*yBott,
 					tileWidth+widthRest-1,
 					tileHeight+heightRest-1
 					);
 		if(r.x == N1-1)
 			return new Rectangle(tileWidth*r.x,
-					tileHeight*r.y,
+					tileHeight*yBott,
 					tileWidth+widthRest-1,
 					tileHeight-1
 					);
-		if(r.y == N2-1)
+		if(yBott == N2-1)
 			return new Rectangle(tileWidth*r.x,
-					tileHeight*r.y,
+					tileHeight*yBott,
 					tileWidth-1,
 					tileHeight+heightRest-1
 					);
 		return new Rectangle(tileWidth*r.x,
-				tileHeight*r.y,
+				tileHeight*yBott,
 				tileWidth-1,
 				tileHeight-1
 				);

@@ -11,9 +11,13 @@ import java.util.List;
 import javax.swing.SwingUtilities;
 
 public class DockFunctionality {
+	public enum WrongMovePolicy{
+		MAKE_NOTICABLE, DONT_ALLOW,
+	}
+	private final DockFunctionality dockF = this;
     private final DockBoard dock;
     private final PlayerBoard board;
-    
+    WrongMovePolicy policy;
     private Ship dragged = null;
     private Board startedDragging;
     private Position startLocation;
@@ -27,7 +31,8 @@ public class DockFunctionality {
         throw new IllegalArgumentException("Board b must be contained within this DockFunctionality");
     }
     
-    public DockFunctionality(PlayerBoard board, DockBoard dock) {
+    public DockFunctionality(PlayerBoard board, DockBoard dock, WrongMovePolicy policy) {
+    	this.policy = policy;
         this.board = board;
         this.dock = dock;
         
@@ -102,17 +107,16 @@ public class DockFunctionality {
                 if(dragged != null) {
                     
                   
-                    if (board.ships.contains(dragged) && !board.isValid(dragged)) {
-                        board.removeShip(dragged);
-                        dock.addShip(dragged);
-                    }
+                	if(dockF.policy == WrongMovePolicy.DONT_ALLOW)
+	                    if (board.ships.contains(dragged) && !board.isValid(dragged)) {
+	                        board.removeShip(dragged);
+	                        dock.addShip(dragged);
+	                    }
                     
                
                     for(Ship s : board.ships) {
                         s.setValid(board.isValid(s));
                     }
-                    
-               
                     for(Ship s : dock.ships) {
                         s.setValid(true);
                     }
@@ -165,11 +169,18 @@ public class DockFunctionality {
                 if (p == null) return; 
                 
                 if (SwingUtilities.isRightMouseButton(e)) {
+                	System.out.println(dockF.policy == WrongMovePolicy.DONT_ALLOW);
                     for (Ship s : board.ships) {
                         if (s.occupies(p)) {
                             s.rotate();
                             if (!board.isValid(s)) {
-                                s.rotate(); 
+                            	if(dockF.policy == WrongMovePolicy.DONT_ALLOW)
+                            		s.rotate(); 
+                            	else if(dockF.policy == WrongMovePolicy.MAKE_NOTICABLE)
+                            		s.setValid(false);
+                            }
+                            for(Ship sp : board.ships) {
+                                sp.setValid(board.isValid(sp));
                             }
                             board.refreshGridShips();
                             return; 
@@ -193,5 +204,9 @@ public class DockFunctionality {
         }
         mListeners.clear();
         mMotionListeners.clear();
+    }
+    
+    public void setWrongMovePolicy(WrongMovePolicy policy) {
+    	this.policy=policy;
     }
 }

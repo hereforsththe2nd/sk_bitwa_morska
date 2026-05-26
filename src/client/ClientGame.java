@@ -26,13 +26,15 @@ import communication.ServerToClient;
 import game.Board;
 import game.DockBoard;
 import game.DockFunctionality;
+import game.DockFunctionality.WrongMovePolicy;
 import game.Phase;
 import game.PlayerBoard;
 import game.Ship;
 
 public class ClientGame extends JPanel {
-    
+	
 	private ClientGame game = this;
+	final Settings settings;
 	private DockFunctionality dockF;
     private static int tempNo=0;
     private boolean gameOngoing = false;
@@ -48,7 +50,8 @@ public class ClientGame extends JPanel {
     private ClientConnectionManager conn;
     private static final long serialVersionUID = 7597107787882315950L;
 
-    public ClientGame(int width, int height) {        
+    public ClientGame(int width, int height, Settings settings) {
+    	this.settings = settings;
         setVisible(false);
         setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
         
@@ -110,12 +113,27 @@ public class ClientGame extends JPanel {
             	for(Ship ship : yourBoard.getShips()) {
             		str += ship+"|";
             	}
+            	confirmPlacement.setEnabled(false);
+            	placeShips.setEnabled(false);
+	            if(dockF != null) {
+	                dockF.dispose();
+	                dockF = null;
+	            }
+
             	sendAndAwait(new Command(GameClientToServer.SET_SHIP, str), new AutoStopMessageListener() {
 					
 					@Override
 					public void onMessage(Command com) {
 						if(com.isContext(GameServerToClient.WRONG_SHIP_CONFIGURATION)) {
 				            JOptionPane.showMessageDialog(game, "Serwer nie zatwierdził ustawienia", "Niepowodzenie", JOptionPane.ERROR_MESSAGE);
+				            confirmPlacement.setEnabled(true);
+				            placeShips.setEnabled(true);
+				            dockF = new DockFunctionality(
+				                    yourBoard,
+				                    dockBoard,
+				                    settings.wrongPlacementPolicy
+				            );
+
 				            return;
 						}
 						
@@ -133,10 +151,6 @@ public class ClientGame extends JPanel {
 			            dockBoard.setVisible(false);
 			            confirmPlacement.setVisible(false);
 			            placeShips.setVisible(false); 
-			            if(dockF != null) {
-			                dockF.dispose();
-			                dockF = null;
-			            }
 			            
 			            JOptionPane.showMessageDialog(game, "Ustawienie zatwierdzone. Oczekiwanie na grę.", "Sukces", JOptionPane.INFORMATION_MESSAGE);
 			            revalidate();
@@ -152,6 +166,15 @@ public class ClientGame extends JPanel {
                 JOptionPane.showMessageDialog(this, 
                         "Nie udało się wysłać rozmieszczenia statków", 
                         "Błąd ustawienia", JOptionPane.ERROR_MESSAGE);
+	            confirmPlacement.setEnabled(true);
+	            placeShips.setEnabled(true);
+	            if(dockF != null)
+		            dockF = new DockFunctionality(
+		                    yourBoard,
+		                    dockBoard,
+		                    settings.wrongPlacementPolicy
+		            );
+
                 return;
 			}
            
@@ -166,7 +189,8 @@ public class ClientGame extends JPanel {
 
             dockF = new DockFunctionality(
                     yourBoard,
-                    dockBoard
+                    dockBoard,
+                    settings.wrongPlacementPolicy
             );
         	
             yourBoard.getShips().clear();
@@ -268,4 +292,25 @@ public class ClientGame extends JPanel {
 		});
     }
 
+	void setWrongPlacementPolicy(WrongMovePolicy wrongPlacementPolicy) {
+		this.settings.setWrongPlacementPolicy(wrongPlacementPolicy);
+		if(dockF != null)
+			dockF.setWrongMovePolicy(wrongPlacementPolicy);
+	}
+    
+	static public class Settings{
+		private WrongMovePolicy wrongPlacementPolicy;
+
+		Settings(WrongMovePolicy wrongPlacementPolicy){
+			this.wrongPlacementPolicy = wrongPlacementPolicy;
+		}
+		
+		public WrongMovePolicy getWrongPlacementPolicy() {
+			return wrongPlacementPolicy;
+		}
+
+		private void setWrongPlacementPolicy(WrongMovePolicy wrongPlacementPolicy) {
+			this.wrongPlacementPolicy = wrongPlacementPolicy;
+		}
+	}
 }

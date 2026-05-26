@@ -40,6 +40,8 @@ public class Command {
 	}
 	
 	public static String encode(Command com) {
+		if(com.body == null)
+			return com.context+"|";
 		return com.context+"|"+com.body;
 	}
 	
@@ -49,5 +51,10 @@ public class Command {
 	
 	public boolean isContext(CommandType context) {
 		return this.context.equals(context.getLabel());
+	}
+	
+	@Override
+	public String toString() {
+		return Command.encode(this);
 	}
 }

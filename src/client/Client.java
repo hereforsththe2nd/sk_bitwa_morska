@@ -13,13 +13,16 @@ import java.net.UnknownHostException;
 import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenuBar;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
@@ -29,11 +32,13 @@ import javax.swing.text.DefaultCaret;
 
 import client.ClientConnectionManager.AutoStopMessageListener;
 import client.ClientConnectionManager.ConnectionListener;
+import client.ClientGame.Settings;
 import communication.ClientToServer;
 import communication.Command;
 import communication.CommandType;
 import communication.GameClientToServer;
 import communication.ServerToClient;
+import game.DockFunctionality;
 
 public class Client extends JFrame{
 	/**
@@ -50,6 +55,9 @@ public class Client extends JFrame{
 	private JLabel errors = new JLabel();
 	Chat chat;
 	private ClientGame game;
+	
+	//menu
+	JCheckBoxMenuItem wrongShipSetPolicy;
 	
 	public Client() throws UnknownHostException, IOException {		
 		
@@ -124,7 +132,8 @@ public class Client extends JFrame{
 								dialog.setModalityType(JDialog.ModalityType.MODELESS);
 								dialog.setLocation(frame.getX()+frame.getWidth()/2-dialog.getWidth()/2, frame.getY()+frame.getHeight()/2-dialog.getHeight()/2);
 								dialog.setVisible(true);
-								game = new ClientGame(400, 400);
+								Settings set = new Settings(wrongShipSetPolicy.getState() ? DockFunctionality.WrongMovePolicy.DONT_ALLOW : DockFunctionality.WrongMovePolicy.MAKE_NOTICABLE);
+								game = new ClientGame(400, 400, set);
 								game.setConnection(conn);
 								panel.add(game, BorderLayout.CENTER);
 								game.startGame();
@@ -186,9 +195,11 @@ public class Client extends JFrame{
 		JMenuItem setUsername = new JMenuItem("Ustaw nazwę użytkownika");
 		JMenuItem clearChat = new JMenuItem("Wyczyść czat");
 		JMenuItem showUsers = new JMenuItem("Pokaż użytkowników");
+		JMenu settings = new JMenu("Ustawienia");
 		menuBar.add(setUsername);
 		menuBar.add(clearChat);
 		menuBar.add(showUsers);
+		menuBar.add(settings);
 		setUsername.addActionListener(new ActionListener() {
 			
 			@Override
@@ -272,8 +283,18 @@ public class Client extends JFrame{
 				});
 			}
 		});
-	
 		
+		wrongShipSetPolicy = new JCheckBoxMenuItem("Automatycznie uniemożliwiać niemożliwe ustawienia statków?");
+		settings.add(wrongShipSetPolicy);
+		wrongShipSetPolicy.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(game!=null) {
+					game.setWrongPlacementPolicy(wrongShipSetPolicy.getState() ? DockFunctionality.WrongMovePolicy.DONT_ALLOW : DockFunctionality.WrongMovePolicy.MAKE_NOTICABLE);
+				}
+			}
+		});
 	}
 
 	//private revalidateResize()

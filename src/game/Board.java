@@ -30,7 +30,7 @@ public class Board extends JPanel {
             SIGN=2,
             HOVER=3;
     
-    final int N = 10;
+    final int N;
     private final static String ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     Position mousePosition = null;
     LinkedList<Position> selected = new LinkedList<Position>();
@@ -40,7 +40,8 @@ public class Board extends JPanel {
     
     private static final long serialVersionUID = -6889931911537334441L;
     
-    public Board(int width, int height) {
+    public Board(int width, int height, int N) {
+    	this.N=N;
         grid = new Grid(N,N, 4);
         for(int x=0;x<grid.getN1();x+=1)
             for(int y=0;y<grid.getN2();y++)
