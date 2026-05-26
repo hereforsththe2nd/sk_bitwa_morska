@@ -5,12 +5,17 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedList;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.function.Predicate;
 
 import javax.imageio.ImageIO;
@@ -37,7 +42,6 @@ interface Drawable{
 	static int BOTTOM_LAYER = 0,
 			TOP_LAYER = Integer.MAX_VALUE;
 	void draw(Rectangle bounds, Graphics2D g2d);
-	int layer();
 	Position getPosition();
 }
 
@@ -50,6 +54,8 @@ public class Grid extends JPanel {
 	private int tileWidth, tileHeight, widthRest, heightRest;
 	private final ArrayList<Layer> layers = new ArrayList<Grid.Layer>();	
 	private BufferedImage screenBuffer;
+
+	private final LinkedList<MousePositionListener> listeners = new LinkedList<Grid.MousePositionListener>();
 	
 	public Grid(final int N1, final int N2, final int layers) {
 		this.N1=N1;
@@ -57,6 +63,24 @@ public class Grid extends JPanel {
 		for(int i=0;i<layers;i++) {
 			this.layers.add(new Layer(null, i));
 		}
+		addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				super.mouseClicked(e);
+				for(MousePositionListener listener : listeners) listener.mouseClicked(getCoords(e.getX(), e.getY()));
+			}
+			
+
+		});
+		
+		addMouseMotionListener(new MouseAdapter() {
+			//są miejsca w których dobrze byłoby tego użyć, ale teraz już za późno i mi się nie chce
+			@Override
+			public void mouseMoved(MouseEvent e) {
+				super.mouseMoved(e);
+				for(MousePositionListener listener : listeners) listener.mouseMoved(getCoords(e.getX(), e.getY()));
+			}
+		});
 	}
 
 	@Override
@@ -81,7 +105,7 @@ public class Grid extends JPanel {
 		super.setSize(width, height);
 	}
 	
-	protected Position getCoords(int x, int y) {
+	public Position getCoords(int x, int y) {
 		int xn = x * N1/getWidth();
 		int yn = y * N2/getHeight();
 		if(xn<0 || yn<0 || xn>=N1 || yn>=N2) return null;
@@ -115,13 +139,36 @@ public class Grid extends JPanel {
 				);
 	}
 	
-	public void addDrawable(Drawable d, Integer layer) {
+	synchronized public void addDrawable(Drawable d, Integer layer) {
 		LinkedList<Drawable> draw = layers.get(layer).getDraw();
 		draw.add(d);
 	}
 	
-	public void removeDrawable(Drawable d, int layer) {
+	synchronized public void removeDrawable(Drawable d, int layer) {
 		layers.get(layer).remove(d);
+	}
+	
+	public void flashDrawable(Drawable d, int layer, int milis) {
+		Timer t = new Timer();
+		TimerTask anim = new TimerTask() {
+			private int i=0;
+			@Override
+			public void run() {
+				if(i==0) {
+					addDrawable(d, layer);
+					addRepaintRequest(layer);
+					repaint();
+				}else if(i==1) {
+					removeDrawable(d, layer);
+					addRepaintRequest(layer);
+					repaint();
+				}else {
+					cancel();
+				}
+				i++;
+			}
+		};
+		t.schedule(anim, 0, milis);
 	}
 	
 	public void addRepaintRequest(int layer) {
@@ -129,7 +176,7 @@ public class Grid extends JPanel {
 	}
 	
 	@Override
-	final protected void paintComponent(Graphics g) {
+	synchronized final protected void paintComponent(Graphics g) {
 		super.paintComponent(g);
 		Graphics2D g2d = (Graphics2D)g;
 		Graphics2D bufferg2d = screenBuffer.createGraphics();
@@ -212,5 +259,15 @@ public class Grid extends JPanel {
 		layers.get(layer).getDraw().clear();
 		layers.get(layer).setRepaint(true);
 		repaint();	
+	}
+	
+	public void addMousePosListener(MousePositionListener listener) {
+		listeners.add(listener);
+	}
+	
+	public static interface MousePositionListener{
+		default void mouseClicked(Position p) {};
+
+		default void mouseMoved(Position p) {};
 	}
 }

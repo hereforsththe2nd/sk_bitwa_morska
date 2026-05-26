@@ -5,27 +5,29 @@ import java.awt.Graphics2D;
 import java.util.LinkedList;
 import java.util.List;
 
+import game.Ship.BooleanPointer;
+
 public class BasicShip {
     public final int length;
-    public Position pos;
-    public boolean horizontal = true;
+    public final Position pos = new Position(0,0);
+    BooleanPointer horizontal = new BooleanPointer(true);
 
-    boolean valid = true;
+    BooleanPointer valid = new BooleanPointer(true);
     
     public BasicShip(int length) {
         this.length = length;
     }
 
     public void rotate() {
-        horizontal = !horizontal;
+        horizontal.value = !horizontal.value;
     }
 
     public boolean occupies(Position p) {
         if (pos == null) return false;
 
         for (int i = 0; i < length; i++) {
-            int x = pos.x + (horizontal ? i : 0);
-            int y = pos.y + (horizontal ? 0 : i);
+            int x = pos.x + (horizontal.value ? i : 0);
+            int y = pos.y + (horizontal.value ? 0 : i);
 
             if (x == p.x && y == p.y) return true;
         }
@@ -34,13 +36,13 @@ public class BasicShip {
 
 
 	public void setValid(boolean b) {
-		valid = b;
+		valid.value = b;
 	}
 		
     public boolean thisIsValid(List<? extends BasicShip> ships, int N) {
         for (int i = 0; i < this.length; i++) {
-            int x = this.pos.x + (this.horizontal ? i : 0);
-            int y = this.pos.y + (this.horizontal ? 0 : i);
+            int x = this.pos.x + (this.horizontal.value ? i : 0);
+            int y = this.pos.y + (this.horizontal.value ? 0 : i);
 
             if (x < 0 || y < 0 || x >= N || y >= N)
                 return false;
@@ -49,8 +51,8 @@ public class BasicShip {
                 if (other == this || other.pos == null) continue;
 
                 for (int j = 0; j < other.length; j++) {
-                    int ox = other.pos.x + (other.horizontal ? j : 0);
-                    int oy = other.pos.y + (other.horizontal ? 0 : j);
+                    int ox = other.pos.x + (other.horizontal.value ? j : 0);
+                    int oy = other.pos.y + (other.horizontal.value ? 0 : j);
 
          
                     if (Math.abs(ox - x) <= 1 && Math.abs(oy - y) <= 1)
@@ -72,7 +74,7 @@ public class BasicShip {
 
 	@Override
 	public String toString() {
-		return ""+ pos.x+","+pos.y + ","+ length+","+(horizontal ? "H" : "V");
+		return ""+ pos.x+","+pos.y + ","+ length+","+(horizontal.value ? "H" : "V");
 	}
 
 	static public BasicShip fromString(String str) {
@@ -86,12 +88,42 @@ public class BasicShip {
 			throw new IllegalArgumentException("Podany string: "+str);
 		boolean horizontal = sub[3].equals("H");
 		BasicShip b = new BasicShip(lenght);
-		b.horizontal=horizontal;
-		b.pos=new Position(posx,posy);
+		b.horizontal.value=horizontal;
+		b.pos.setValues(posx,posy);
 		return b;
 	}
 	
 	public int getLength() {
 		return length;
+	}
+	
+	public LinkedList<Position> around(int N1, int N2){
+		LinkedList<Position> ret = new LinkedList<Position>();
+        for (int i = 0; i < length; i++) {
+            int x = pos.x + (horizontal.value ? i : 0);
+            int y = pos.y + (horizontal.value ? 0 : i);
+            ret.add(horizontal.value ? new Position(x, y+1) : new Position(x+1, y));
+            ret.add(horizontal.value ? new Position(x, y-1) : new Position(x-1, y));
+            if(i == 0){
+            	int sign = 1;
+            	ret.add(horizontal.value ? new Position(x-sign, y-1) : new Position(x-1, y-sign));
+            	ret.add(horizontal.value ? new Position(x-sign, y) : new Position(x, y-sign));
+            	ret.add(horizontal.value ? new Position(x-sign, y+1) : new Position(x+1, y-sign));
+            }
+            if(i == length-1){
+            	int sign = -1;
+            	ret.add(horizontal.value ? new Position(x-sign, y-1) : new Position(x-1, y-sign));
+            	ret.add(horizontal.value ? new Position(x-sign, y) : new Position(x, y-sign));
+            	ret.add(horizontal.value ? new Position(x-sign, y+1) : new Position(x+1, y-sign));
+            }
+
+        }
+        for(Position p : (LinkedList<Position>)ret.clone()) {
+        	if(!p.checkIfContained(N1, N2)){
+        		ret.remove(p);
+        	}
+        }
+        return ret;
+
 	}
 }

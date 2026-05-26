@@ -1,8 +1,9 @@
 package communication;
 
 public enum GameClientToServer implements CommandType{
-	TEMP_PLEASELETMEWIN("ff"),
+	FORFEIT("ff"),
 	SET_SHIP("SET_SHIP"),
+	STRIKE("STRIKE"),
 	;
 
 	private final String label;

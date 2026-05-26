@@ -2,14 +2,22 @@ package game;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
+import java.util.LinkedList;
+
 import game.Drawable;
+import game.Drawables.ShipTile;
 
-public class Ship extends BasicShip implements Drawable {
-
+public class Ship extends BasicShip {
+	
+	final LinkedList<Drawable> tiles = new LinkedList<Drawable>();
+	
     public Ship(int length) {
 		super(length);
+		for(int i=0;i<length;i++) {
+			tiles.add(new ShipTile(new Position(i,0), pos, valid, horizontal));
+		}
 	}
-
+    /*
 	@Override
     public void draw(Rectangle bounds, Graphics2D g2d) {
         if (pos == null) return;
@@ -50,7 +58,7 @@ public class Ship extends BasicShip implements Drawable {
             );
         }
     }
-
+	
     @Override
     public int layer() {
         return Board.SHIP;
@@ -59,5 +67,12 @@ public class Ship extends BasicShip implements Drawable {
     @Override
     public Position getPosition() {
         return pos;
+    }
+    */
+    public static class BooleanPointer{
+    	boolean value;
+    	public BooleanPointer(boolean value) {
+    		this.value=value;
+    	}
     }
 }

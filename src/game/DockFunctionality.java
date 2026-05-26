@@ -47,8 +47,8 @@ public class DockFunctionality {
                     if(dragged == null) return;
                     if(startedDragging != b) return; 
                     
-                    Point pMain = SwingUtilities.convertPoint(b.grid, e.getPoint(), other.grid);
-                    Position posMain = other.grid.getCoords(pMain.x, pMain.y);
+                    Point pMain = SwingUtilities.convertPoint(b.getGrid(), e.getPoint(), other.getGrid());
+                    Position posMain = other.getGrid().getCoords(pMain.x, pMain.y);
                     
                     if (posMain != null) {
                         if (!other.ships.contains(dragged)) {
@@ -56,7 +56,7 @@ public class DockFunctionality {
                             b.refreshGridShips();
                             other.addShip(dragged);
                         }
-                        dragged.pos = posMain;
+                        dragged.pos.setValues(posMain);
                         other.refreshGridShips();
                     } else {
                         if (!b.ships.contains(dragged)) {
@@ -64,15 +64,15 @@ public class DockFunctionality {
                             other.refreshGridShips();
                             b.addShip(dragged);
                         }
-                        Position pDock = b.grid.getCoords(e.getX(), e.getY());
+                        Position pDock = b.getGrid().getCoords(e.getX(), e.getY());
                         if (pDock != null) {
-                            dragged.pos = pDock;
+                            dragged.pos.setValues(pDock);
                         }
                         b.refreshGridShips();
                     }
                 }
             };
-            b.grid.addMouseMotionListener(dragAdapter);
+            b.getGrid().addMouseMotionListener(dragAdapter);
             mMotionListeners.add(dragAdapter);
             
        
@@ -80,7 +80,7 @@ public class DockFunctionality {
                 @Override
                 public void mousePressed(MouseEvent e) {
                     super.mousePressed(e);
-                    Position p = b.grid.getCoords(e.getX(), e.getY());
+                    Position p = b.getGrid().getCoords(e.getX(), e.getY());
                     if (p == null) return; 
                     
                     if(SwingUtilities.isLeftMouseButton(e)) {
@@ -95,7 +95,7 @@ public class DockFunctionality {
                     }
                 }
             };
-            b.grid.addMouseListener(pressAdapter);
+            b.getGrid().addMouseListener(pressAdapter);
             mListeners.add(pressAdapter);
         }
         
@@ -129,15 +129,15 @@ public class DockFunctionality {
                 }
             }
         };
-        board.grid.addMouseListener(onRelease);
-        dock.grid.addMouseListener(onRelease);
+        board.getGrid().addMouseListener(onRelease);
+        dock.getGrid().addMouseListener(onRelease);
         mListeners.add(onRelease);
         
    
         MouseAdapter dockRotateAdapter = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                Position p = dock.grid.getCoords(e.getX(), e.getY());
+                Position p = dock.getGrid().getCoords(e.getX(), e.getY());
                 if (p == null) return;
                 
                 if (SwingUtilities.isRightMouseButton(e)) {
@@ -146,8 +146,8 @@ public class DockFunctionality {
                             s.rotate();
                             boolean boundsOk = true;
                             for (int i = 0; i < s.length; i++) {
-                                int x = s.pos.x + (s.horizontal ? i : 0);
-                                int y = s.pos.y + (s.horizontal ? 0 : i);
+                                int x = s.pos.x + (s.horizontal.value ? i : 0);
+                                int y = s.pos.y + (s.horizontal.value ? 0 : i);
                                 if (x < 0 || y < 0 || x >= dock.N || y >= dock.N) boundsOk = false;
                             }
                             if (!boundsOk) s.rotate(); 
@@ -158,14 +158,14 @@ public class DockFunctionality {
                 }
             }
         };
-        dock.grid.addMouseListener(dockRotateAdapter);
+        dock.getGrid().addMouseListener(dockRotateAdapter);
         mListeners.add(dockRotateAdapter);
         
        
         MouseAdapter boardRotateAdapter = new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
-                Position p = board.grid.getCoords(e.getX(), e.getY());
+                Position p = board.getGrid().getCoords(e.getX(), e.getY());
                 if (p == null) return; 
                 
                 if (SwingUtilities.isRightMouseButton(e)) {
@@ -189,18 +189,18 @@ public class DockFunctionality {
                 }
             }
         };
-        board.grid.addMouseListener(boardRotateAdapter);
+        board.getGrid().addMouseListener(boardRotateAdapter);
         mListeners.add(boardRotateAdapter);
     }
     
     public void dispose() {
         for (MouseListener ml : mListeners) {
-            board.grid.removeMouseListener(ml);
-            dock.grid.removeMouseListener(ml);
+            board.getGrid().removeMouseListener(ml);
+            dock.getGrid().removeMouseListener(ml);
         }
         for (MouseMotionListener mml : mMotionListeners) {
-            board.grid.removeMouseMotionListener(mml);
-            dock.grid.removeMouseMotionListener(mml);
+            board.getGrid().removeMouseMotionListener(mml);
+            dock.getGrid().removeMouseMotionListener(mml);
         }
         mListeners.clear();
         mMotionListeners.clear();

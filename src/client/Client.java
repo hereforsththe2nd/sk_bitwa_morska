@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dialog;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.Socket;
@@ -32,6 +33,7 @@ import javax.swing.text.DefaultCaret;
 
 import client.ClientConnectionManager.AutoStopMessageListener;
 import client.ClientConnectionManager.ConnectionListener;
+import client.ClientConnectionManager.DisconnectionListener;
 import client.ClientGame.Settings;
 import communication.ClientToServer;
 import communication.Command;
@@ -106,17 +108,28 @@ public class Client extends JFrame{
 			public void actionPerformed(ActionEvent e) {
 				if(conn != ClientConnectionManager.DISCONNECTED) {
 					conn.close();
-					conn = ClientConnectionManager.DISCONNECTED;
-					button.setText("Connect");
-					hostText.setEnabled(true);
-					portText.setEnabled(true);
-					frame.setTitle("Disconnected");
-					game.exec(ClientGame.END_GAME);
 					return;
 				}
 				try {
 					socket = new Socket(hostText.getText(), Integer.parseInt(portText.getText()));
-					conn = new ClientConnectionManager(socket);
+					conn = new ClientConnectionManager(socket, new DisconnectionListener() {
+						@Override
+						public void onDisconnect() {
+							//System.out.println("przed close");
+							conn.close();
+							//System.out.println("po close");
+							conn = ClientConnectionManager.DISCONNECTED;
+							//System.out.println("po ustawieniu");
+							button.setText("Connect");
+							hostText.setEnabled(true);
+							portText.setEnabled(true);
+							frame.setTitle("Disconnected");
+							if(game != null) {
+								game.exec(ClientGame.END_GAME);
+								game = null;
+							}
+						}
+					});
 					conn.addMessageListener(new ConnectionListener() {
 
 						@Override
@@ -191,6 +204,7 @@ public class Client extends JFrame{
 	
 	private void doTheMenu() {
 		JMenuBar menuBar = new JMenuBar();
+		menuBar.setLayout(new FlowLayout());
 		setJMenuBar(menuBar);
 		JMenuItem setUsername = new JMenuItem("Ustaw nazwę użytkownika");
 		JMenuItem clearChat = new JMenuItem("Wyczyść czat");

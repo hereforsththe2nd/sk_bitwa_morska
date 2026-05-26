@@ -4,10 +4,17 @@ import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
+import java.util.Currency;
+
+import javax.print.attribute.DocAttributeSet;
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JDialog;
@@ -27,16 +34,26 @@ import game.Board;
 import game.DockBoard;
 import game.DockFunctionality;
 import game.DockFunctionality.WrongMovePolicy;
+import game.Grid.MousePositionListener;
 import game.Phase;
 import game.PlayerBoard;
+import game.Position;
 import game.Ship;
+import game.Ship.BooleanPointer;
+import game.Drawables.Flash;
+import game.Drawables.ShipTile;
+import game.Drawables.X;
 
 public class ClientGame extends JPanel {
 	
 	private ClientGame game = this;
+    final JPanel left = new JPanel();
+    final JPanel right = new JPanel();
+    JButton placeShips;
+    JLabel curentObjective;
+    
 	final Settings settings;
 	private DockFunctionality dockF;
-    private static int tempNo=0;
     private boolean gameOngoing = false;
     Phase phase = Phase.SETTING_SHIPS;
     
@@ -53,28 +70,9 @@ public class ClientGame extends JPanel {
     public ClientGame(int width, int height, Settings settings) {
     	this.settings = settings;
         setVisible(false);
-        setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-        
-        JButton temp = new JButton("Win " + tempNo);
-        temp.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    tempNo++;
-                    send(new Command(GameClientToServer.TEMP_PLEASELETMEWIN, ""));
-                } catch (IOException e1) {
-                    e1.printStackTrace();
-                }
-            }
-        });
-        add(temp);
-        
-        JButton placeShips = new JButton("Ustaw statki");
-        add(placeShips);
-        
-        JPanel left = new JPanel();
-        JPanel right = new JPanel();
+        setLayout(new BoxLayout(this, BoxLayout.X_AXIS));          
         add(left);
+        add(Box.createHorizontalStrut(20));
         add(right);
         left.setLayout(new BoxLayout(left, BoxLayout.Y_AXIS));
         right.setLayout(new BoxLayout(right, BoxLayout.Y_AXIS));
@@ -91,14 +89,15 @@ public class ClientGame extends JPanel {
   
         left.add(yourBoard);
         right.add(oppBoard);
-        
+        confirmPlacement = new JButton("Zatwierdz ustawienie");
+        confirmPlacement.setVisible(false);
+        left.add(confirmPlacement);
 
         dockBoard.setVisible(false);
         left.add(dockBoard);
         
+        doSE();
 
-        confirmPlacement = new JButton("Zatwierdz ustawienie");
-        confirmPlacement.setVisible(false);
         confirmPlacement.addActionListener(e -> {
          
             if (!dockBoard.getShips().isEmpty()) {
@@ -109,10 +108,7 @@ public class ClientGame extends JPanel {
             }
             
             try {
-            	String str = "";
-            	for(Ship ship : yourBoard.getShips()) {
-            		str += ship+"|";
-            	}
+            	String str = yourBoard.encodeShipLocations();
             	confirmPlacement.setEnabled(false);
             	placeShips.setEnabled(false);
 	            if(dockF != null) {
@@ -139,10 +135,12 @@ public class ClientGame extends JPanel {
 						
 						switch(CommandType.get(com.context, GameServerToClient.values())) {
 						case GameServerToClient.PHASE_AWAIT:
-							phase=Phase.AWAITING_MISSLE;
+							setPhase(Phase.AWAITING_MISSLE);;
+				            JOptionPane.showMessageDialog(game, "Ustawienie zatwierdzone. Oczekiwanie aż przeciwnik ustawi statki.", "Sukces", JOptionPane.INFORMATION_MESSAGE);
 							break;
 						case GameServerToClient.PHASE_SHOOT:
-							phase=Phase.SENDING_MISSLE;
+							setPhase(Phase.SENDING_MISSLE);
+				            JOptionPane.showMessageDialog(game, "Ustawienie zatwierdzone. Przeciwnik ustawił statki. Możesz wykonać strzał.", "Sukces", JOptionPane.INFORMATION_MESSAGE);
 							break;
 						default:
 							return;
@@ -152,7 +150,6 @@ public class ClientGame extends JPanel {
 			            confirmPlacement.setVisible(false);
 			            placeShips.setVisible(false); 
 			            
-			            JOptionPane.showMessageDialog(game, "Ustawienie zatwierdzone. Oczekiwanie na grę.", "Sukces", JOptionPane.INFORMATION_MESSAGE);
 			            revalidate();
 			            repaint();
 					}
@@ -179,13 +176,15 @@ public class ClientGame extends JPanel {
 			}
            
         });
-        left.add(confirmPlacement);
         
         placeShips.addActionListener(e -> {
 
             if(dockF != null) {
                 dockF.dispose();
             }
+           
+            yourBoard.clearShips();
+            yourBoard.refreshGridShips();
 
             dockF = new DockFunctionality(
                     yourBoard,
@@ -193,8 +192,6 @@ public class ClientGame extends JPanel {
                     settings.wrongPlacementPolicy
             );
         	
-            yourBoard.getShips().clear();
-            yourBoard.refreshGridShips();
          
           
             dockBoard.refreshGridShips();
@@ -206,10 +203,17 @@ public class ClientGame extends JPanel {
             repaint();
         });
         
-        JPanel tiles = new JPanel();
-        JPanel misc = new JPanel();
-        left.add(tiles);
-        right.add(misc);
+        oppBoard.addMousePositionListener(new MousePositionListener() {
+			
+			@Override
+			public void mouseClicked(Position p) {
+				try {
+					send(new Command(GameClientToServer.STRIKE, Position.encode(p)));
+				} catch (IOException e) {
+					JOptionPane.showMessageDialog(game, "Nie udało się wysłać inforamcji o strale serwerowi", "Błąd wysłania", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
     }
     
     protected void setConnection(ClientConnectionManager conn) {
@@ -242,6 +246,7 @@ public class ClientGame extends JPanel {
         JOptionPane pane;
         JDialog dialog;
         Point location = getLocationOnScreen();
+		Position p;
         switch(CommandType.get(comm.context, GameServerToClient.values())) {
         case GameServerToClient.YOU_LOST:
             pane = new JOptionPane("Przegrałeś " + comm.body, JOptionPane.INFORMATION_MESSAGE);
@@ -259,6 +264,38 @@ public class ClientGame extends JPanel {
             dialog.setVisible(true);
             endGame();
             break;
+        case GameServerToClient.PHASE_AWAIT:
+			setPhase(Phase.AWAITING_MISSLE);
+        	break;
+        case GameServerToClient.PHASE_SHOOT:
+			setPhase(Phase.SENDING_MISSLE);
+        	break;
+		case GameServerToClient.ENEMY_STRIKE:
+			p = Position.decode(comm.body);
+			yourBoard.getGrid().flashDrawable(new Flash(p), Board.HOVER, 300);
+			yourBoard.getGrid().addDrawable(new X(p), Board.SIGN);
+			yourBoard.getGrid().addRepaintRequest(Board.SIGN);
+			yourBoard.repaint();
+			break;
+		case GameServerToClient.STRIKE_HIT:
+			p = Position.decode(comm.body);
+			oppBoard.getGrid().addDrawable(new X(p), Board.SIGN);
+			oppBoard.getGrid().addRepaintRequest(Board.SIGN);
+			oppBoard.getGrid().addDrawable(new ShipTile(new Position(0,0), p, new BooleanPointer(true), null), Board.SHIP);
+			oppBoard.getGrid().addRepaintRequest(Board.SHIP);
+			oppBoard.repaint();
+			break;
+		case GameServerToClient.STRIKE_MISS:
+			p = Position.decode(comm.body);
+			System.out.println(p+"miss");
+			oppBoard.getGrid().addDrawable(new X(p), Board.SIGN);
+			oppBoard.getGrid().addRepaintRequest(Board.SIGN);
+			oppBoard.repaint();
+			break;
+		case GameServerToClient.ERROR:
+			JOptionPane.showMessageDialog(game, comm.body, "Serwer: błąd", JOptionPane.ERROR_MESSAGE);
+			break;
+
         default:
             break;
         }
@@ -268,6 +305,14 @@ public class ClientGame extends JPanel {
         gameOngoing = false;
         setVisible(false);
         getParent().remove(this);
+    }
+    
+    private void setPhase(Phase p) {
+    	this.phase = p;
+    	if(p==Phase.AWAITING_MISSLE)
+    		curentObjective.setText("Czekanie na ruch przeciwnika");
+    	if(p==Phase.SENDING_MISSLE)
+    		curentObjective.setText("Strelaj!");
     }
     
     protected void send(Command comm) throws IOException {
@@ -313,4 +358,27 @@ public class ClientGame extends JPanel {
 			this.wrongPlacementPolicy = wrongPlacementPolicy;
 		}
 	}
+	
+	private void doSE() {
+        placeShips = new JButton("Ustaw statki");
+        JButton forfeit = new JButton("Poddaj się");
+        forfeit.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    send(new Command(GameClientToServer.FORFEIT, ""));
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+            }
+        });
+        
+        curentObjective = new JLabel("Ułóż statki");
+        
+        right.add(curentObjective);
+        right.add(Box.createVerticalStrut(5));
+        right.add(forfeit);
+        right.add(Box.createVerticalStrut(5));
+        right.add(placeShips);
+       }
 }

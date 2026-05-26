@@ -22,4 +22,27 @@ public class Position {
 	public String toString() {
 		return "x: "+x+", y: "+y;
 	}
+	
+	public void setValues(int x, int y){
+		this.x=x;
+		this.y=y;
+	}
+	
+	public void setValues(Position p) {
+		this.x=p.x;
+		this.y=p.y;
+	}
+	
+	static public String encode(Position p) {
+		return p.x+","+p.y;
+	}
+	
+	static public Position decode(String str) {
+		String[] prts = str.split(",");
+		return new Position(Integer.parseInt(prts[0]), Integer.parseInt(prts[1]));
+	}
+	
+	public boolean checkIfContained(int N1, int N2) {
+		return x>=0&&y>=0&&x<N1&&y<N2;
+	}
 }

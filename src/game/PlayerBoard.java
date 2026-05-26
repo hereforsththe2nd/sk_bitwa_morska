@@ -18,4 +18,19 @@ public class PlayerBoard extends Board {
 		return dragged.thisIsValid(ships, N);
 	}
 
+	public void clearShips() {
+		for(Ship s : (List<Ship>)ships.clone()) {
+			removeShip(s);
+		}
+		ships.clear();
+	}
+
+	public String encodeShipLocations() {
+		String str = "";
+    	for(Ship ship : ships) {
+    		str += ship+"|";
+    	}
+    	return str;
+	}
+
 }

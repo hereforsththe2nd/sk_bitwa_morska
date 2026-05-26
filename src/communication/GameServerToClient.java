@@ -6,6 +6,10 @@ public enum GameServerToClient implements CommandType{
 	PHASE_SHOOT("SHOOT"),
 	PHASE_AWAIT("AWAIT"),
 	WRONG_SHIP_CONFIGURATION("WSC"),
+	STRIKE_HIT("HIT"),
+	STRIKE_MISS("MISSED"),
+	ENEMY_STRIKE("ENEMY_STIKE"),
+	ERROR("ERROR"),
 	;
 	private final String label;
 	private GameServerToClient(String label) {

@@ -7,7 +7,9 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 
-final class Drawables {	
+import game.Ship.BooleanPointer;
+
+public final class Drawables {	
 	static final class Tiles implements Drawable{
 		private static final Color color1=new Color(192,149,55);
 		private static final Color color2=new Color(150,124,68);
@@ -31,11 +33,6 @@ final class Drawables {
 			}
 
 		@Override
-		public int layer() {
-			return Drawable.BOTTOM_LAYER;
-		}
-
-		@Override
 		public Position getPosition() {
 			return r;
 		}
@@ -56,11 +53,6 @@ final class Drawables {
 		}
 
 		@Override
-		public int layer() {
-			return Drawable.TOP_LAYER;
-		}
-
-		@Override
 		public Position getPosition() {
 			return r;
 		}
@@ -68,5 +60,96 @@ final class Drawables {
 		public void setPosition(Position r) {
 			this.r = r;
 		}
+	}
+	public static final class X implements Drawable{
+		private final Position r;
+		private final int pad = 4;
+		public X(Position r) {
+			this.r=r;
+		}
+		
+		@Override
+		public void draw(Rectangle bounds, Graphics2D g2d) {
+			g2d.setColor(Color.BLACK);
+			g2d.setStroke(new BasicStroke(2));
+			g2d.drawLine(bounds.x+pad, bounds.y+pad, bounds.x+bounds.width-pad, bounds.y+bounds.height-pad);
+			g2d.drawLine(bounds.x+bounds.width - pad, bounds.y+pad, bounds.x+pad, bounds.y+bounds.height-pad);
+		}
+
+		@Override
+		public Position getPosition() {
+			return r;
+		}
+		
+	}
+	public static final class Flash implements Drawable{
+		private final Position r;
+		private final Color COLOR = new Color(0,200,0,128);
+		public Flash(Position r) {
+			this.r=r;
+		}
+		
+		@Override
+		public void draw(Rectangle bounds, Graphics2D g2d) {
+			g2d.setColor(COLOR);
+			g2d.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+		}
+
+		@Override
+		public Position getPosition() {
+			return r;
+		}
+		
+	}
+	public static final class ShipTile implements Drawable{
+		private final BooleanPointer valid;
+		private final BooleanPointer horizontal;
+		private final Position dp;
+		private final Position shipP;
+		
+		public ShipTile(Position dp, Position shipP,  BooleanPointer valid, BooleanPointer horizontal) {
+			this.valid=valid;
+			this.dp=dp;
+			this.shipP=shipP;
+			this.horizontal=horizontal;
+		}
+		
+		@Override
+		public void draw(Rectangle bounds, Graphics2D g2d) {
+            if(valid.value) {
+                g2d.setColor(Color.blue);
+            } else {
+                g2d.setColor(Color.red);
+            }
+         
+            g2d.fillRoundRect(
+                bounds.x + 2,
+                bounds.y + 2,
+                bounds.width - 4,
+                bounds.height - 4,
+                10,
+                10
+            );
+
+         
+            g2d.setColor(Color.BLACK);
+            g2d.drawRoundRect(
+                bounds.x + 2,
+                bounds.y + 2,
+                bounds.width - 4,
+                bounds.height - 4,
+                10,
+                10
+            );
+		}
+
+
+		@Override
+		public Position getPosition() {
+			if(horizontal == null || horizontal.value)
+				return new Position(dp.x+shipP.x, dp.y+shipP.y);
+			return new Position(shipP.x-dp.y, shipP.y+dp.x);
+		}
+		
 	}
 }

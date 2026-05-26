@@ -1,6 +1,10 @@
 package game;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 
 public class DockBoard extends Board {
 
@@ -8,25 +12,33 @@ public class DockBoard extends Board {
 	 * 
 	 */
 	private static final long serialVersionUID = -6831697083852871746L;
-	public static final Integer[] CONFIG = {3,3,2};//{4,3,3,2,2,2,1,1,1,1};
-	
+	public static final Integer[] CONFIG = {4,3,2,1};//{4,3,3,2,2,2,1,1,1,1};
+
+	private static int minSize() {
+		int min = 0;
+		for(int i=0;i<CONFIG.length;i++) {
+			if(i+CONFIG[i] > min)
+				min = i+CONFIG[i];
+		}
+		return min;
+	}
 	public DockBoard(int width, int height) {
-		super(width, height, CONFIG.length);
+		super(width, height, minSize());
 	}
 
     public void layoutShipsInDock() {
         ships.sort(Comparator.comparing(Ship::getLength) );
-    	ships = ships.reversed();
+    	Collections.reverse(ships);
         for (int i = 0; i < ships.size(); i++) {
             Ship s = ships.get(i);
-            s.pos = new Position(i, i);
+            s.pos.setValues(i, i);
         }
         refreshGridShips();
     }
 
     public void startShipPlacement() {
         ships.clear();
-        grid.clearLayer(SHIP);
+        getGrid().clearLayer(SHIP);
 
         for (int len : CONFIG) {
             Ship s = new Ship(len);
@@ -35,5 +47,6 @@ public class DockBoard extends Board {
         
         layoutShipsInDock();
     }
+
 
 }

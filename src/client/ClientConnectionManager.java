@@ -20,6 +20,9 @@ public class ClientConnectionManager {
 		void onMessage(Command com);
 	}
 	
+	static public interface DisconnectionListener{
+		void onDisconnect();
+	}
 	
 	static public interface AutoStopMessageListener extends ConnectionListener{
 		boolean stop(Command message);
@@ -29,10 +32,12 @@ public class ClientConnectionManager {
 	final BufferedReader reader;
 	final private LinkedList<ConnectionListener> listeners = new LinkedList<ConnectionListener>();
 	final LinkedList<AutoStopMessageListener> autoStopListeners = new LinkedList<AutoStopMessageListener>();
+	final DisconnectionListener onDisconnect;
 	boolean connected = true;
 
-	protected ClientConnectionManager(Socket socket) throws UnknownHostException, IOException {
+	protected ClientConnectionManager(Socket socket, DisconnectionListener onDisconnect) throws UnknownHostException, IOException {
 			this.socket = socket;
+			this.onDisconnect=onDisconnect;
 			writer = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			Thread listen = new Thread(new Runnable() {
@@ -60,7 +65,8 @@ public class ClientConnectionManager {
 						}
 					}
 					try {
-						System.out.println("Zmaknieto (klient)");
+						System.out.println("Zmaknieto (klient nie widzi serwera)");
+						onDisconnect.onDisconnect();
 						socket.close();
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -115,6 +121,7 @@ public class ClientConnectionManager {
 		this.socket = null;
 		this.writer = null;
 		this.reader = null;
+		this.onDisconnect=null;
  	}
 	static final ClientConnectionManager DISCONNECTED = new ClientConnectionManager() {
 		@Override
