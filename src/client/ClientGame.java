@@ -1,7 +1,10 @@
 package client;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
+import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics2D;
@@ -14,6 +17,7 @@ import java.io.IOException;
 import java.util.Currency;
 
 import javax.print.attribute.DocAttributeSet;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
@@ -21,6 +25,8 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 
 import client.ClientConnectionManager.AutoStopMessageListener;
 import client.ClientConnectionManager.ConnectionListener;
@@ -43,6 +49,8 @@ import game.Ship.BooleanPointer;
 import game.Drawables.Flash;
 import game.Drawables.ShipTile;
 import game.Drawables.X;
+import game.Drawables.Text;
+import game.Grid;
 
 public class ClientGame extends JPanel {
 	
@@ -135,7 +143,7 @@ public class ClientGame extends JPanel {
 						
 						switch(CommandType.get(com.context, GameServerToClient.values())) {
 						case GameServerToClient.PHASE_AWAIT:
-							setPhase(Phase.AWAITING_MISSLE);;
+							setPhase(Phase.WAIT);;
 				            JOptionPane.showMessageDialog(game, "Ustawienie zatwierdzone. Oczekiwanie aż przeciwnik ustawi statki.", "Sukces", JOptionPane.INFORMATION_MESSAGE);
 							break;
 						case GameServerToClient.PHASE_SHOOT:
@@ -265,14 +273,14 @@ public class ClientGame extends JPanel {
             endGame();
             break;
         case GameServerToClient.PHASE_AWAIT:
-			setPhase(Phase.AWAITING_MISSLE);
+			setPhase(Phase.WAIT);
         	break;
         case GameServerToClient.PHASE_SHOOT:
 			setPhase(Phase.SENDING_MISSLE);
         	break;
 		case GameServerToClient.ENEMY_STRIKE:
 			p = Position.decode(comm.body);
-			yourBoard.getGrid().flashDrawable(new Flash(p), Board.HOVER, 300);
+			yourBoard.getGrid().flashDrawable(new Flash(p, new Color(0,255,0,200)), Board.HOVER, 500);
 			yourBoard.getGrid().addDrawable(new X(p), Board.SIGN);
 			yourBoard.getGrid().addRepaintRequest(Board.SIGN);
 			yourBoard.repaint();
@@ -309,7 +317,7 @@ public class ClientGame extends JPanel {
     
     private void setPhase(Phase p) {
     	this.phase = p;
-    	if(p==Phase.AWAITING_MISSLE)
+    	if(p==Phase.WAIT)
     		curentObjective.setText("Czekanie na ruch przeciwnika");
     	if(p==Phase.SENDING_MISSLE)
     		curentObjective.setText("Strelaj!");
@@ -343,6 +351,56 @@ public class ClientGame extends JPanel {
 			dockF.setWrongMovePolicy(wrongPlacementPolicy);
 	}
     
+	public static void showTutorial() {
+		try {
+		JDialog tutorial = new JDialog(null, Dialog.ModalityType.MODELESS);
+		JPanel left = new JPanel();
+		JScrollPane leftScroll = new JScrollPane(left);
+		JPanel right = new JPanel();
+		
+		Grid g = new Grid(5, 3, 1);
+		//JPanel g = new JPanel();
+		g.setBorder(BorderFactory.createLineBorder(Color.black, 5));
+		int dx = 4;
+		int tx = 2;
+		g.addDrawable(new X(new Position(dx, 0)), 0);
+		g.addDrawable(new ShipTile(new Position(dx, 1), new Position(0,0), new BooleanPointer(true), null), 0);
+		g.addDrawable(new ShipTile(new Position(dx, 2), new Position(0,0), new BooleanPointer(true), null), 0);
+		g.addDrawable(new X(new Position(dx, 2)), 0);
+		
+		g.addDrawable(new Text("Strzał:", new Position(tx,0)), 0);
+		g.addDrawable(new Text("Statek:", new Position(tx,1)), 0);
+		g.addDrawable(new Text("Zastrzelony:", new Position(tx,2)), 0);
+		g.setPreferredSize(new Dimension(120,0));
+		
+		JTextArea text = new JTextArea();
+		text.append("1)Połącz się ze serwerem\n");
+		text.append("2)Kliknij \"Pokaż użytkowników\" aby zobaczyć możliwych przeciwników\n");
+		text.append("3)Zaproś użytkownika\n");
+		text.append("4)Kliknij ustaw statki\n");
+		text.append("5)Po ustawieniu wszystkich statków kliknij zatwierdz ułożenie\n");
+		text.append("W prawym dolnym rogu widzisz co aktualnie masz robić\n");
+		text.append("6)Jeśli widzisz \"Strzelaj!\" kliknij na planszę przeciwnika\n");
+		text.append("Ruch zmienia się za każdym razem, chyba że gracz trafi w statek: wtedy ma ponowny ruch.\n");
+		
+		text.setEditable(false);
+		
+		tutorial.setLayout(new BorderLayout());
+		tutorial.add(leftScroll, BorderLayout.CENTER);
+		leftScroll.setPreferredSize(new Dimension(text.getPreferredSize().width, text.getPreferredSize().height+30));
+		tutorial.add(g, BorderLayout.EAST);
+		left.add(text);
+		//right.add(g);
+		
+		tutorial.setTitle("Pomoc");
+		tutorial.pack();
+		tutorial.setVisible(true);
+		
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
 	static public class Settings{
 		private WrongMovePolicy wrongPlacementPolicy;
 

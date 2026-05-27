@@ -40,7 +40,7 @@ public class Server extends JFrame{
 	
 	public Server() throws IOException {
 		super();
-		setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		addWindowListener(new WindowAdapter() {
 			
 			@Override
@@ -215,5 +215,22 @@ public class Server extends JFrame{
 			namesScrollBar.setValue(namesScrollBar.getMaximum());
 			revalidate();
 		}
+	}
+	
+	public static void main(String[] args) {
+		SwingUtilities.invokeLater(new Runnable() {
+			
+			@Override
+			public void run() {
+				try {
+					Server s = new Server();
+					s.setSize(400,400);
+					s.setVisible(true);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
+			}
+		});
 	}
 }

@@ -2,7 +2,9 @@ package game;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
@@ -84,9 +86,18 @@ public final class Drawables {
 	}
 	public static final class Flash implements Drawable{
 		private final Position r;
-		private final Color COLOR = new Color(0,200,0,128);
+		static public final Color COLOR = new Color(0,200,0,128);
+		private Color color;
+		
+		
 		public Flash(Position r) {
 			this.r=r;
+			this.color=COLOR;
+		}
+		
+		public Flash(Position r, Color color) {
+			this.r=r;
+			this.color=color;
 		}
 		
 		@Override
@@ -149,6 +160,29 @@ public final class Drawables {
 			if(horizontal == null || horizontal.value)
 				return new Position(dp.x+shipP.x, dp.y+shipP.y);
 			return new Position(shipP.x-dp.y, shipP.y+dp.x);
+		}
+		
+	}
+	
+	public static final class Text implements Drawable{
+		private final String text;
+		private final Position p;
+		
+		public Text(String str, Position p) {
+			this.text=str;
+			this.p=p;
+		}
+		
+		@Override
+		public void draw(Rectangle bounds, Graphics2D g2d) {
+			FontMetrics fm = g2d.getFontMetrics();
+			Rectangle rect = fm.getStringBounds(text, 0, text.length(), g2d).getBounds();
+			g2d.drawString(text, bounds.x+(bounds.width-rect.width)/2, bounds.y + (bounds.height+rect.height)/2);
+		}
+
+		@Override
+		public Position getPosition() {
+			return p;
 		}
 		
 	}

@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -20,7 +21,7 @@ import java.util.function.Predicate;
 
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
-
+/*
 class Rectangle{
 	int x,y,width,height;
 	
@@ -36,7 +37,7 @@ class Rectangle{
 		return x+", "+y+", "+width+", "+height;
 	}
 }
-
+*/
 
 interface Drawable{
 	static int BOTTOM_LAYER = 0,
@@ -60,6 +61,7 @@ public class Grid extends JPanel {
 	public Grid(final int N1, final int N2, final int layers) {
 		this.N1=N1;
 		this.N2=N2;
+		setSize(1,1);
 		for(int i=0;i<layers;i++) {
 			this.layers.add(new Layer(null, i));
 		}
@@ -180,6 +182,8 @@ public class Grid extends JPanel {
 		super.paintComponent(g);
 		Graphics2D g2d = (Graphics2D)g;
 		Graphics2D bufferg2d = screenBuffer.createGraphics();
+		bufferg2d.setBackground(new Color(0,0,0,0));
+		bufferg2d.clearRect(0, 0, getWidth(), getHeight());
 		g2d.setRenderingHint(
 			    RenderingHints.KEY_INTERPOLATION ,
 			    RenderingHints.VALUE_INTERPOLATION_BICUBIC

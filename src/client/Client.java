@@ -25,6 +25,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JWindow;
@@ -63,28 +64,24 @@ public class Client extends JFrame{
 	
 	public Client() throws UnknownHostException, IOException {		
 		
-		setSize(700,500);
+		setSize(900,600);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setTitle("Disconnected");
 		
-		JPanel panel = new JPanel();
-		panel.setLayout(new BorderLayout());
-		add(panel);
+		JPanel left=new JPanel(), right=new JPanel();
+		//panel.setLayout(new BorderLayout());
+		//panel.add(left, BorderLayout.WEST);
+
 				
-		JPanel left = new JPanel();
-		left.setLayout(new BorderLayout());
 		leftToolbar = new JPanel();
 		leftToolbar.setBackground(Color.getHSBColor(0, 0, (float) 0.5));
 		leftToolbar.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 5));
-		panel.add(left, BorderLayout.WEST);
-		left.add(leftToolbar, BorderLayout.NORTH);
 				
 		//left
 		//errors.setEditable(false);
 		errors.setForeground(Color.RED);
 		JScrollPane errorScrollPane = new JScrollPane(errors);
 		errorScrollPane.setPreferredSize(new Dimension(100, 50));
-		leftToolbar.add(errorScrollPane);
 		
 		JPanel connSpecs = new JPanel();
 		JPanel connSpecsTop = new JPanel();
@@ -98,10 +95,39 @@ public class Client extends JFrame{
 		JTextField portText = new JTextField("8000");
 		connSpecsBottom.add(hostText, BorderLayout.EAST);
 		connSpecsBottom.add(portText, BorderLayout.WEST);
-		leftToolbar.add(connSpecs);
 		
 		JButton button = new JButton("Connect");
+
+		chat = new Chat();
+		DefaultCaret chatCaret = (DefaultCaret) chat.getCaret();
+		chatCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
+		chat.setDisabledTextColor(Color.BLACK);
+		chat.setEnabled(false);
+		JScrollPane chatScroll = new  JScrollPane(chat);
+		JTextField chatSend = new JTextField();
+
+		JSplitPane panel = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
+				left, right);
+		right.setLayout(new BorderLayout());
+		//left.setPreferredSize(new Dimension(20,0));
+		//right.setPreferredSize(new Dimension(300,0));
+		//right.setMinimumSize(new Dimension(300,0));
+		left.setMinimumSize(new Dimension(left.getPreferredSize().width,0));
+		//panel.setDividerLocation(0.7);
+		panel.setResizeWeight(0.2);
+		JPanel leftTopToolbar = new JPanel(); 
+		leftTopToolbar.setBackground(leftTopToolbar.getBackground());
+		this.add(panel);
+		left.setLayout(new BorderLayout());	
+		left.add(leftToolbar,BorderLayout.NORTH);
+		left.add(chatScroll, BorderLayout.CENTER);
+		left.add(chatSend,BorderLayout.SOUTH);
+		leftTopToolbar.add(errorScrollPane);
+		leftTopToolbar.add(connSpecs);
+		leftToolbar.setLayout(new BoxLayout(leftToolbar, BoxLayout.Y_AXIS));
+		leftToolbar.add(leftTopToolbar);
 		leftToolbar.add(button);
+
 		
 		button.addActionListener(new ActionListener() {
 			@Override
@@ -148,7 +174,7 @@ public class Client extends JFrame{
 								Settings set = new Settings(wrongShipSetPolicy.getState() ? DockFunctionality.WrongMovePolicy.DONT_ALLOW : DockFunctionality.WrongMovePolicy.MAKE_NOTICABLE);
 								game = new ClientGame(400, 400, set);
 								game.setConnection(conn);
-								panel.add(game, BorderLayout.CENTER);
+								right.add(game, BorderLayout.CENTER);
 								game.startGame();
 								break;
 							case ServerToClient.YOUR_USERNAME:
@@ -176,14 +202,7 @@ public class Client extends JFrame{
 			}
 		});
 
-		chat = new Chat();
-		DefaultCaret chatCaret = (DefaultCaret) chat.getCaret();
-		chatCaret.setUpdatePolicy(DefaultCaret.ALWAYS_UPDATE);
-		chat.setDisabledTextColor(Color.BLACK);
-		chat.setEnabled(false);
-		JScrollPane chatScroll = new  JScrollPane(chat);
-		left.add(chatScroll, BorderLayout.CENTER);
-		JTextField chatSend = new JTextField();
+		
 		chatSend.addActionListener(new ActionListener() {
 			
 			@Override
@@ -196,7 +215,6 @@ public class Client extends JFrame{
 				}
 			}
 		});
-		left.add(chatSend, BorderLayout.SOUTH);
 		
 		doTheMenu();
 		
@@ -210,10 +228,15 @@ public class Client extends JFrame{
 		JMenuItem clearChat = new JMenuItem("Wyczyść czat");
 		JMenuItem showUsers = new JMenuItem("Pokaż użytkowników");
 		JMenu settings = new JMenu("Ustawienia");
+		wrongShipSetPolicy = new JCheckBoxMenuItem("Automatycznie uniemożliwiać niemożliwe ustawienia statków?");
+		settings.add(wrongShipSetPolicy);
+		JMenuItem help = new JMenuItem("Pomoc");
+		
 		menuBar.add(setUsername);
 		menuBar.add(clearChat);
 		menuBar.add(showUsers);
 		menuBar.add(settings);
+		menuBar.add(help);
 		setUsername.addActionListener(new ActionListener() {
 			
 			@Override
@@ -297,9 +320,6 @@ public class Client extends JFrame{
 				});
 			}
 		});
-		
-		wrongShipSetPolicy = new JCheckBoxMenuItem("Automatycznie uniemożliwiać niemożliwe ustawienia statków?");
-		settings.add(wrongShipSetPolicy);
 		wrongShipSetPolicy.addActionListener(new ActionListener() {
 			
 			@Override
@@ -309,10 +329,17 @@ public class Client extends JFrame{
 				}
 			}
 		});
+		help.addActionListener(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				ClientGame.showTutorial();
+			}
+		});
 	}
 
 	//private revalidateResize()
-	/*
+	
 	public static void main(String[] args) throws Exception{
 	   SwingUtilities.invokeLater(new Runnable() {
 		
@@ -338,6 +365,6 @@ public class Client extends JFrame{
        socket.close();
        System.out.println("closed");
        
- 	}
-	}*/
+ 	}*/
+	}
 }

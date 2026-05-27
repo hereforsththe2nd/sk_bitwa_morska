@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import communication.ChatList;
 import communication.Command;
@@ -21,6 +22,8 @@ import game.PlayerBoard;
 import game.Position;
 
 public class ServerGame {
+	private final Random random = new Random();
+
 	public static final LinkedList<ServerGame> games = new LinkedList<ServerGame>();
 	public final ArrayList<User> users;
 	private final Map<User, LinkedList<BasicShip>> ships = new HashMap<>();
@@ -78,12 +81,15 @@ public class ServerGame {
 				hits.put(s, 0);
 			}
 			if(phases.get(otherUser(user)) == Phase.SETTING_SHIPS) {
-				phases.put(user, Phase.AWAITING_MISSLE);
+				phases.put(user, Phase.WAIT);
 				send(new Command(GameServerToClient.PHASE_AWAIT, null), user);
 			}
-			else {
-				phases.put(user, Phase.SENDING_MISSLE);
-				send(new Command(GameServerToClient.PHASE_SHOOT, null), user);
+			else if(phases.get(otherUser(user)) == Phase.WAIT) {
+				int ui = random.nextInt(2);
+				phases.put(users.get(ui), Phase.SENDING_MISSLE);
+				send(new Command(GameServerToClient.PHASE_SHOOT, null), users.get(ui));
+				phases.put(users.get( (ui+1)%2 ), Phase.WAIT);
+				send(new Command(GameServerToClient.PHASE_AWAIT, null), users.get( (ui+1)%2 ));
 			}
 			break;
 			
@@ -127,7 +133,7 @@ public class ServerGame {
 			send(new Command(GameServerToClient.STRIKE_MISS, Position.encode(p)), user);
 			send(new Command(GameServerToClient.PHASE_AWAIT, null), user);
 			send(new Command(GameServerToClient.PHASE_SHOOT, null), otherUser(user));
-			phases.put(user, Phase.AWAITING_MISSLE);
+			phases.put(user, Phase.WAIT);
 			phases.put(otherUser(user), Phase.SENDING_MISSLE);
 			break;
 		default:
