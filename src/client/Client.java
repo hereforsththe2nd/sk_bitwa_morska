@@ -8,7 +8,10 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.event.ActionListener;
 import java.io.*;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 
 import javax.swing.BorderFactory;
@@ -136,69 +139,99 @@ public class Client extends JFrame{
 					conn.close();
 					return;
 				}
-				try {
-					socket = new Socket(hostText.getText(), Integer.parseInt(portText.getText()));
-					conn = new ClientConnectionManager(socket, new DisconnectionListener() {
+					Thread t = new Thread(new Runnable() {
+						
 						@Override
-						public void onDisconnect() {
-							//System.out.println("przed close");
-							conn.close();
-							//System.out.println("po close");
-							conn = ClientConnectionManager.DISCONNECTED;
-							//System.out.println("po ustawieniu");
-							button.setText("Connect");
-							hostText.setEnabled(true);
-							portText.setEnabled(true);
-							frame.setTitle("Disconnected");
-							if(game != null) {
-								game.exec(ClientGame.END_GAME);
-								game = null;
-							}
-						}
-					});
-					conn.addMessageListener(new ConnectionListener() {
-
-						@Override
-						public void onMessage(Command com) {
-							switch(CommandType.get(com.context, ServerToClient.values())) {
-							case ServerToClient.CHAT:
-								Command message = Command.decode(com.body);
-								chat.exec(message);
-								break;
-							case ServerToClient.START_GAME:
-								JOptionPane pane = new JOptionPane(com.body, JOptionPane.INFORMATION_MESSAGE);
-								JDialog dialog = pane.createDialog("Rozpoczęto grę");
-								dialog.setModalityType(JDialog.ModalityType.MODELESS);
-								dialog.setLocation(frame.getX()+frame.getWidth()/2-dialog.getWidth()/2, frame.getY()+frame.getHeight()/2-dialog.getHeight()/2);
-								dialog.setVisible(true);
-								Settings set = new Settings(wrongShipSetPolicy.getState() ? DockFunctionality.WrongMovePolicy.DONT_ALLOW : DockFunctionality.WrongMovePolicy.MAKE_NOTICABLE);
-								game = new ClientGame(400, 400, set);
-								game.setConnection(conn);
-								right.add(game, BorderLayout.CENTER);
-								game.startGame();
-								break;
-							case ServerToClient.YOUR_USERNAME:
-								userName = com.body;
+						public void run() {
+							try {
+								SocketAddress adress = new InetSocketAddress(hostText.getText(), Integer.parseInt(portText.getText()));
+								errors.setText("Czekianie na połączenie");
+								hostText.setEnabled(false);
+								portText.setEnabled(false);
+								button.setEnabled(false);
+								socket = new Socket();
+								socket.connect(adress, 5000);
+								errors.setText("");
+								conn = new ClientConnectionManager(socket, new DisconnectionListener() {
+									@Override
+									public void onDisconnect() {
+										//System.out.println("przed close");
+										conn.close();
+										//System.out.println("po close");
+										conn = ClientConnectionManager.DISCONNECTED;
+										//System.out.println("po ustawieniu");
+										button.setText("Connect");
+										hostText.setEnabled(true);
+										portText.setEnabled(true);
+										frame.setTitle("Disconnected");
+										if(game != null) {
+											game.exec(ClientGame.END_GAME);
+											game = null;
+										}
+									}
+								});
+								conn.addMessageListener(new ConnectionListener() {
+	
+									@Override
+									public void onMessage(Command com) {
+										switch(CommandType.get(com.context, ServerToClient.values())) {
+										case ServerToClient.CHAT:
+											Command message = Command.decode(com.body);
+											chat.exec(message);
+											break;
+										case ServerToClient.START_GAME:
+											JOptionPane pane = new JOptionPane(com.body, JOptionPane.INFORMATION_MESSAGE);
+											JDialog dialog = pane.createDialog("Rozpoczęto grę");
+											dialog.setModalityType(JDialog.ModalityType.MODELESS);
+											dialog.setLocation(frame.getX()+frame.getWidth()/2-dialog.getWidth()/2, frame.getY()+frame.getHeight()/2-dialog.getHeight()/2);
+											dialog.setVisible(true);
+											Settings set = new Settings(wrongShipSetPolicy.getState() ? DockFunctionality.WrongMovePolicy.DONT_ALLOW : DockFunctionality.WrongMovePolicy.MAKE_NOTICABLE);
+											game = new ClientGame(400, 400, set);
+											game.setConnection(conn);
+											right.add(game, BorderLayout.CENTER);
+											game.startGame();
+											break;
+										case ServerToClient.YOUR_USERNAME:
+											userName = com.body;
+											frame.setTitle(userName);
+											break;
+										case ServerToClient.ERROR_PANE:
+											JOptionPane.showMessageDialog(frame, com.body, "", JOptionPane.ERROR_MESSAGE);
+											break;
+										default:
+											errors.setText("Otrzymano od serwera: "+com.context);
+											break;
+										
+										}
+									}
+								});
 								frame.setTitle(userName);
-								break;
-							case ServerToClient.ERROR_PANE:
-								JOptionPane.showMessageDialog(frame, com.body, "", JOptionPane.ERROR_MESSAGE);
-								break;
-							default:
-								errors.setText("Otrzymano od serwera: "+com.context);
-								break;
-							
+								button.setEnabled(true);
+								button.setText("Disconnect");
+							}catch (SocketTimeoutException e2) {
+								errors.setText("Timeout");
+								hostText.setEnabled(true);
+								portText.setEnabled(true);
+								button.setEnabled(true);
+							} 
+							catch (IOException e1) {
+								e1.printStackTrace();
+								hostText.setEnabled(true);
+								portText.setEnabled(true);
+								button.setEnabled(true);
+								errors.setText(e1.getLocalizedMessage() + " IO exception while connecting");
+								errors.revalidate();
+							} catch (Exception e2) {
+								e2.printStackTrace();
+								hostText.setEnabled(true);
+								portText.setEnabled(true);
+								button.setEnabled(true);
 							}
+							
 						}
 					});
-					frame.setTitle(userName);
-					button.setText("Disconnect");
-					hostText.setEnabled(false);
-					portText.setEnabled(false);
-				} catch (IOException e1) {
-					errors.setText(e1.getLocalizedMessage());
-					errors.revalidate();
-				}
+					
+					t.start();
 			}
 		});
 
@@ -211,7 +244,7 @@ public class Client extends JFrame{
 					conn.send(new Command(ClientToServer.CHAT, chatSend.getText()));
 					chatSend.setText("");
 				} catch (IOException e1) {
-					errors.setText(e1.getLocalizedMessage());
+					errors.setText(e1.getLocalizedMessage() + ", while sending chat");
 				}
 			}
 		});

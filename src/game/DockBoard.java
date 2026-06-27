@@ -12,7 +12,7 @@ public class DockBoard extends Board {
 	 * 
 	 */
 	private static final long serialVersionUID = -6831697083852871746L;
-	public static final Integer[] CONFIG = {4,3,2,1};//{4,3,3,2,2,2,1,1,1,1};
+	public static final Integer[] CONFIG = {4,3,3,2,2,2,1,1,1,1};//ułożone malejąco koniecznie!
 
 	private static int minSize() {
 		int min = 0;
